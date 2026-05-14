@@ -1,0 +1,34 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ─── Design Tokens ─── */
+@theme {
+  /* Brand Colors */
+  --color-brand-dark: #161925;
+  --color-brand-dark-80: #2e3347;
+  --color-brand-dark-60: #464d69;
+  --color-brand-dark-40: #7d8399;
+  --color-brand-dark-20: #c5c8d4;
+  --color-brand-dark-10: #e8e9ee;
+
+  --color-brand-red: #C1292E;
+  --color-brand-red-dark: #991f23;
+  --color-brand-red-light: #e05559;
+  --color-brand-red-soft: #f5d0d1;
+
+  --color-brand-yellow: #F1D302;
+  --color-brand-yellow-dark: #c4ac00;
+  --color-brand-yellow-light: #f6de3e;
+  --color-brand-yellow-soft: #fdf6c0;
+
+  /* Semantic Aliases */
+  --color-background-base: #111317;
+  --color-background-elevated: #1a1d24;
+  --color-background-card: #16181f;
+  --color-primary: #C1292E;
+  --color-secondary: #F1D302;
+  --color-text-primary: #f0f0f2;
+  --color-text-secondary: #9ca3af;
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+
+}
