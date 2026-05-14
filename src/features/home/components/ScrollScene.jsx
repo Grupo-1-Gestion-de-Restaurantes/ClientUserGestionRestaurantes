@@ -1,68 +1,73 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { useScrollStore } from '../store/useScrollStore';
 import * as THREE from 'three';
 
 export const ScrollScene = () => {
-  // 1. Cargamos el Entorno y la Cámara con su animación
-  const { scene: envScene } = useGLTF('/three/scroll_model.glb');
-  const { scene: cameraScene, animations } = useGLTF('/three/scroll_camera.glb');
+  const { scene: envScene, animations: envAnims } = useGLTF('/three/scroll_model.glb');
+  const { scene: cameraScene, animations: camAnims } = useGLTF('/three/scroll_camera.glb');
   
-  // 2. Extraemos las herramientas de R3F
-  const { set } = useThree();
-  const { actions, mixer } = useAnimations(animations, cameraScene);
+  const { set, gl } = useThree();
+  const { actions: camActions, mixer: camMixer } = useAnimations(camAnims, cameraScene);
+  const { actions: envActions, mixer: envMixer } = useAnimations(envAnims, envScene);
+
+  useLayoutEffect(() => {
+    gl.toneMapping = THREE.ReinhardToneMapping;
+    gl.outputColorSpace = THREE.SRGBColorSpace;
+    gl.toneMappingExposure = 2.5; // Boosted for bright models on red bg
+  }, [gl]);
 
   useEffect(() => {
-    // 3. Buscamos la cámara oculta dentro del archivo GLB y la volvemos la "Principal"
     cameraScene.traverse((child) => {
       if (child.isPerspectiveCamera) {
-        // Configuramos el campo de visión para que parezca cinematográfico
         child.fov = 45;
         child.updateProjectionMatrix();
         set({ camera: child }); 
       }
     });
 
-    // 4. Tomamos la animación, la iniciamos pero la PAUSAMOS.
-    const action = Object.values(actions)[0];
-    if (action) {
-      action.play();
-      action.paused = true; // Nosotros controlaremos el tiempo manualmente
-    }
-  }, [cameraScene, actions, set]);
+    Object.values(camActions).forEach(action => {
+      if (action) {
+        action.play();
+        action.paused = true;
+      }
+    });
 
-  // 5. EL NÚCLEO DE LA MAGIA: Esto se ejecuta 60 veces por segundo
+    Object.values(envActions).forEach(action => {
+      if (action) {
+        action.play();
+        action.paused = true;
+      }
+    });
+  }, [cameraScene, camActions, envActions, set]);
+
   useFrame(() => {
-    // Leemos el store SIN causar re-renders en React (Transient update)
     const progress = useScrollStore.getState().progress;
-    const action = Object.values(actions)[0];
+    const mainCamAction = Object.values(camActions)[0];
+    const mainEnvAction = Object.values(envActions)[0];
     
-    if (action) {
-      const duration = action.getClip().duration;
-      
-      // Matemática PRO: Interpolación lineal suave (Lerp) para evitar tirones si el usuario hace scroll rápido
-      const targetTime = progress * duration;
-      
-      // Movemos la cámara lentamente hacia el targetTime
-      mixer.setTime(THREE.MathUtils.lerp(mixer.time, targetTime, 0.05));
-    }
+    const duration = mainCamAction
+      ? mainCamAction.getClip().duration
+      : (mainEnvAction ? mainEnvAction.getClip().duration : 10);
+    const targetTime = progress * duration;
+    
+    // Slightly faster lerp for more responsive tracking
+    if (camMixer) camMixer.setTime(THREE.MathUtils.lerp(camMixer.time, targetTime, 0.08));
+    if (envMixer) envMixer.setTime(THREE.MathUtils.lerp(envMixer.time, targetTime, 0.08));
   });
 
   return (
     <group>
-      <ambientLight intensity={1.5} />
-      <directionalLight position={[10, 20, 10]} intensity={2} color="#ffffff" />
+      <ambientLight intensity={2} />
+      <directionalLight position={[0, 5, 5]} intensity={12} color="#ffffff" castShadow={false} />
+      <directionalLight position={[-10, 6, -8]} intensity={3} color="#fff5e0" />
       
-      {/* Renderizamos el modelo de la estación */}
       <primitive object={envScene} />
-      
-      {/* Renderizamos el sistema de la cámara */}
       <primitive object={cameraScene} />
     </group>
   );
 };
 
-// Optimizamos precargando
 useGLTF.preload('/three/scroll_model.glb');
 useGLTF.preload('/three/scroll_camera.glb');

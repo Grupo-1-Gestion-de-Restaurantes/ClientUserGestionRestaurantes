@@ -2,23 +2,29 @@ import { useState, useEffect, useCallback } from "react";
 
 export const SLIDES_DATA = [
   {
-    title: "BIGGER\nTHAN HUNGER.\nSMALLER THAN\nA PLANET",
-    desc1: "Stacked cosmic burger with orbit fries and stardust sauce.",
-    desc2: "Comes with Major Paws, the fluffiest captain in the Milky Way.",
+    title: "MÁS GRANDE\nQUE EL HAMBRE.\nMÁS PEQUEÑO\nQUE UN PLANETA",
+    desc1: "Hamburguesa cósmica con papas orbitales y salsa estelar.",
+    desc2: "Incluye al Mayor Paws, el capitán más esponjoso de la Vía Láctea.",
+    bubbleTitle: "GALAXY BITE",
+    bubbleSubtitle: "銀河バイト",
   },
   {
-    title: "SLICED\nACROSS THE\nGALAXY\nONE BITE",
-    desc1: "Cosmic pizza baked in a supernova oven with asteroid toppings.",
-    desc2: "Paired with Coffee Nebula — brewed from the darkest matter.",
+    title: "PIZZA\nTAN BUENA,\nQUE LA GRAVEDAD\nPUEDE ESPERAR",
+    desc1: "Pepperoni supernova, papas asteroidales y un batido cósmico.",
+    desc2: "Servido con Koalantis, el koala más relajado de la galaxia.",
+    bubbleTitle: "PIZZANAUT SET",
+    bubbleSubtitle: "ピッツァノートセット",
   },
   {
-    title: "THE DOG\nTHAT CROSSED\nTHE EVENT\nHORIZON",
-    desc1: "A hotdog so long it bends spacetime. Mustard from Jupiter.",
-    desc2: "Relish harvested from the rings of Saturn. Worth the trip.",
+    title: "EL PERRITO\nQUE CRUZÓ\nEL HORIZONTE\nDE EVENTOS",
+    desc1: "Un hot dog tan largo que dobla el espacio-tiempo. Mostaza de Júpiter.",
+    desc2: "Salsa cosechada de los anillos de Saturno. Vale la pena el viaje.",
+    bubbleTitle: "HOTDOG ODYSSEY",
+    bubbleSubtitle: "ホットドッグオデッセイ",
   },
 ];
 
-const AUTO_SWITCH_MS = 3000;
+const AUTO_SWITCH_MS = 5000;
 
 export const useHeroSlider = () => {
   const [current, setCurrent] = useState(0);
