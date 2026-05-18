@@ -1,4 +1,5 @@
 import { Suspense, useRef, useLayoutEffect } from 'react';
+import { Environment } from '@react-three/drei';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Canvas } from '@react-three/fiber';
@@ -45,12 +46,20 @@ export const HowItWorks = () => {
     <section
       id="how"
       ref={containerRef}
-      className="w-full h-screen bg-[var(--color-primary)] relative overflow-hidden"
+      className="w-full h-screen bg-transparent relative overflow-hidden"
     >
+      {/* ── Radial red glow behind 3D (énfasis sin saturar) ── */}
+      <div className="absolute inset-0 bg-radial-primary mask-radial-fade pointer-events-none z-0" aria-hidden />
+      <div className="absolute inset-0 bg-grid-faint opacity-60 pointer-events-none z-0" aria-hidden />
+
       {/* ── 3D Canvas (full background) ── */}
-      <div className="absolute inset-0 z-0">
-        <Canvas gl={{ antialias: true, alpha: true }}>
+      <div className="absolute inset-0 z-[1]">
+        <Canvas
+          gl={{ antialias: true, alpha: true }}
+          camera={{ near: 0.1, far: 100000 }}
+        >
           <Suspense fallback={null}>
+            <Environment preset="studio" />
             <ScrollScene />
           </Suspense>
         </Canvas>
@@ -78,10 +87,13 @@ export const HowItWorks = () => {
       <div className="relative z-10 w-full h-full pointer-events-none flex flex-col justify-end p-8 md:p-14">
         
         {/* Title */}
-        <h2 
-          className="font-bangers text-5xl md:text-7xl lg:text-8xl font-black text-white text-stroke drop-shadow-lg tracking-wider mb-5"
+        <p className="text-secondary font-bangers tracking-[0.3em] text-sm md:text-base uppercase mb-2">
+          Paso a paso
+        </p>
+        <h2
+          className="font-bangers text-5xl md:text-7xl lg:text-8xl font-black text-on-base text-stroke drop-shadow-lg tracking-wider mb-5"
         >
-          CÓMO FUNCIONA
+          CÓMO <span className="text-secondary">FUNCIONA</span>
         </h2>
         
         {/* Step Pills */}
@@ -91,10 +103,10 @@ export const HowItWorks = () => {
             return (
               <div 
                 key={i}
-                className={`border-[3px] border-black rounded-full font-black text-base md:text-lg transition-all duration-300 shadow-brutal-sm flex items-center justify-center select-none
-                ${isActive 
-                  ? 'bg-white text-black px-5 md:px-6 py-2' 
-                  : 'bg-white text-black w-10 h-10 md:w-12 md:h-12'
+                className={`border-[3px] border-stroke-strong rounded-full font-black text-base md:text-lg transition-all duration-300 shadow-brutal-sm flex items-center justify-center select-none
+                ${isActive
+                  ? 'bg-secondary text-on-secondary px-5 md:px-6 py-2'
+                  : 'bg-surface-2 text-on-base w-10 h-10 md:w-12 md:h-12'
                 }`}
               >
                 {isActive ? stepName : (i + 1)}

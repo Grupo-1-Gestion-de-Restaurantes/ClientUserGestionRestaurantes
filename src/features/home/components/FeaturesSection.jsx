@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import star from '../../../assets/img/star.svg';
+import { useParallax2D } from '../../../shared/hooks/useParallax2D';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -48,22 +49,32 @@ export const FeaturesSection = () => {
     );
   }, { scope: sectionRef });
 
+  useParallax2D(sectionRef, [
+    { selector: '.feat-star-a', yPercent: -50 },
+    { selector: '.feat-star-b', yPercent: 60 },
+  ]);
+
   return (
     <section
       id="features"
       ref={sectionRef}
-      className="relative w-full min-h-screen bg-[var(--color-background-base)] flex flex-col items-center justify-center px-8 md:px-20 py-20 overflow-hidden"
+      className="relative w-full min-h-screen bg-transparent flex flex-col items-center justify-center px-8 md:px-20 py-24 overflow-hidden"
     >
-      {/* Floating stars */}
-      <img src={star} alt="" className="absolute top-[8%] right-[12%] w-8 h-8 animate-float pointer-events-none" />
-      <img src={star} alt="" className="absolute bottom-[12%] left-[8%] w-6 h-6 animate-twinkle pointer-events-none" />
+      <div className="absolute inset-0 bg-grid-faint pointer-events-none" aria-hidden />
 
-      <div className="max-w-5xl w-full">
+      {/* Floating stars con parallax */}
+      <img src={star} alt="" aria-hidden className="feat-star-a absolute top-[8%] right-[12%] w-8 h-8 animate-float pointer-events-none" />
+      <img src={star} alt="" aria-hidden className="feat-star-b absolute bottom-[12%] left-[8%] w-6 h-6 animate-twinkle pointer-events-none" />
+
+      <div className="relative max-w-5xl w-full">
         {/* Title */}
-        <h2 className="font-bangers text-5xl md:text-7xl lg:text-8xl font-black text-white text-stroke tracking-wider text-center mb-4">
-          FUNCIONALIDADES EXPRESS
+        <p className="text-secondary font-bangers tracking-[0.3em] text-sm md:text-base uppercase text-center mb-3">
+          Lo que ofrecemos
+        </p>
+        <h2 className="font-bangers text-5xl md:text-7xl lg:text-8xl font-black text-on-base text-stroke tracking-wider text-center mb-4">
+          FUNCIONALIDADES <span className="text-secondary">EXPRESS</span>
         </h2>
-        <p className="text-center text-white/80 text-lg md:text-xl font-medium mb-14">
+        <p className="text-center text-on-base-muted text-lg md:text-xl font-medium mb-14">
           Todo lo que tu restaurante necesita, en un solo sistema
         </p>
 
@@ -72,29 +83,25 @@ export const FeaturesSection = () => {
           {FEATURES.map((feat, i) => (
             <div
               key={i}
-              className="feature-card bg-white rounded-xl border-[3px] border-black shadow-brutal p-6 flex flex-col gap-4 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] transition-all cursor-pointer relative"
+              className="feature-card group bg-surface-2 rounded-xl border-[3px] border-stroke-strong shadow-brutal p-6 flex flex-col gap-4 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] hover:bg-surface-3 transition-all cursor-pointer relative"
             >
               {/* Marker SVG decorations */}
               <img
                 src="/home/marker.svg"
                 alt=""
+                aria-hidden
                 className="absolute -top-3 -right-3 w-8 h-8 pointer-events-none animate-float"
                 style={{ animationDelay: `${i * 0.3}s` }}
               />
-              <img
-                src="/home/marker-shadow.svg"
-                alt=""
-                className="absolute -bottom-2 -left-2 w-6 h-6 pointer-events-none opacity-40"
-              />
 
               {/* Number badge */}
-              <div className="w-10 h-10 bg-landing-yellow rounded-full border-[2px] border-black flex items-center justify-center font-bangers text-xl shadow-brutal-sm">
+              <div className="w-10 h-10 bg-secondary text-on-secondary rounded-full border-[2px] border-stroke-strong flex items-center justify-center font-bangers text-xl shadow-brutal-sm">
                 {i + 1}
               </div>
 
               {/* Title & Desc */}
-              <h3 className="font-bangers text-xl tracking-wide text-black">{feat.title}</h3>
-              <p className="text-sm text-black/70 leading-relaxed">{feat.description}</p>
+              <h3 className="font-bangers text-xl tracking-wide text-on-base group-hover:text-secondary transition-colors">{feat.title}</h3>
+              <p className="text-sm text-on-base-muted leading-relaxed">{feat.description}</p>
             </div>
           ))}
         </div>

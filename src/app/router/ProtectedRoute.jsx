@@ -1,14 +1,12 @@
-import { Navigate } from "react-router-dom";
-import { useAuthStore } from "../../features/auth/store/useAuthStore";
+import { Navigate } from 'react-router-dom';
+import { useAuthStore } from '../../features/auth/store/useAuthStore';
+import { Spinner } from '../../shared/components/layout/Spinner';
 
 export const ProtectedRoute = ({ children }) => {
-  // Leemos el estado global de autenticación
-  const { isAuth } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isLoadingAuth = useAuthStore((s) => s.isLoadingAuth);
 
-  // Si no está autenticado, lo enviamos al login
-  if (!isAuth) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (isLoadingAuth) return <Spinner label="Cargando sesión…" />;
+  if (!isAuthenticated) return <Navigate to="/auth" replace />;
   return children;
 };

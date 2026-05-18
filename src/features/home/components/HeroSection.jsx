@@ -14,7 +14,7 @@ gsap.registerPlugin(useGSAP);
 
 const BUBBLE_IMAGES = [bubble, pizza_bubble, hotDog_bubble];
 
-export const HeroSection = ({ paused = false }) => {
+export const HeroSection = ({ paused = false, isStarting = false }) => {
   const { current, progress, goTo, slideData, totalSlides } = useHeroSlider();
   const portalRef = useRef(null);
   const textRef = useRef(null);
@@ -131,7 +131,8 @@ export const HeroSection = ({ paused = false }) => {
           {/* Red oval portal behind the 3D model */}
           <div
             ref={portalRef}
-            className="absolute z-0 w-[300px] h-[440px] md:w-[380px] md:h-[560px] rounded-[50%] bg-[var(--color-primary)] will-change-transform"
+            data-hero-portal
+            className="absolute z-0 w-[300px] h-[440px] md:w-[380px] md:h-[560px] rounded-[50%] bg-primary glow-primary will-change-transform"
             aria-hidden
           />
 
@@ -140,10 +141,13 @@ export const HeroSection = ({ paused = false }) => {
             <Canvas
               camera={{ position: [0, 0, 45], fov: 45 }}
               gl={{ antialias: true, alpha: true }}
+              onCreated={({ gl }) => {
+                gl.setClearColor(0x000000, 0);
+              }}
               frameloop={paused ? "never" : "always"}
             >
               <Suspense fallback={null}>
-                <HeroModels activeIndex={current} />
+                <HeroModels activeIndex={current} isStarting={isStarting} />
               </Suspense>
             </Canvas>
           </div>
@@ -151,11 +155,11 @@ export const HeroSection = ({ paused = false }) => {
 
         {/* ── Col 3: Text + Controls ── */}
         <div ref={textRef} className="z-10 flex flex-col gap-5 will-change-transform">
-          <h1 className="font-bangers text-4xl md:text-5xl lg:text-6xl font-black leading-tight whitespace-pre-line text-[var(--color-secondary)] drop-shadow-sm tracking-wide">
+          <h1 className="font-bangers text-4xl md:text-5xl lg:text-6xl font-black leading-tight whitespace-pre-line text-secondary drop-shadow-sm tracking-wide">
             {slideData.title}
           </h1>
 
-          <div className="grid grid-cols-2 gap-5 text-sm text-white/80 font-medium">
+          <div className="grid grid-cols-2 gap-5 text-sm text-on-base-muted font-medium">
             <p>{slideData.desc1}</p>
             <p>{slideData.desc2}</p>
           </div>
@@ -165,7 +169,7 @@ export const HeroSection = ({ paused = false }) => {
             <button
               type="button"
               onClick={() => goTo(current - 1)}
-              className="rounded-lg border-[3px] border-black bg-white p-3 shadow-brutal transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] active:scale-95"
+              className="rounded-lg border-[3px] border-stroke-strong bg-on-base text-surface-1 p-3 shadow-brutal transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] active:scale-95"
               aria-label="Previous slide"
             >
               <ArrowLeft size={20} strokeWidth={3} />
@@ -181,14 +185,14 @@ export const HeroSection = ({ paused = false }) => {
                   aria-label={`Go to slide ${i + 1}`}
                 >
                   {i === current ? (
-                    <div className="h-2.5 w-20 overflow-hidden rounded-full bg-black/20 border border-black/10">
+                    <div className="h-2.5 w-20 overflow-hidden rounded-full bg-surface-3 border border-stroke-soft">
                       <div
-                        className="h-full rounded-full bg-black transition-none"
+                        className="h-full rounded-full bg-secondary transition-none"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
                   ) : (
-                    <div className="h-2.5 w-2.5 rounded-full bg-black/40 transition-colors hover:bg-black" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-on-base-faint transition-colors hover:bg-secondary" />
                   )}
                 </button>
               ))}
@@ -197,14 +201,14 @@ export const HeroSection = ({ paused = false }) => {
             <button
               type="button"
               onClick={() => goTo(current + 1)}
-              className="rounded-lg border-[3px] border-black bg-white p-3 shadow-brutal transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] active:scale-95"
+              className="rounded-lg border-[3px] border-stroke-strong bg-on-base text-surface-1 p-3 shadow-brutal transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] active:scale-95"
               aria-label="Next slide"
             >
               <ArrowRight size={20} strokeWidth={3} />
             </button>
           </div>
 
-          <p className="text-sm font-bold text-white/50 tracking-wider font-bangers">
+          <p className="text-sm font-bold text-on-base-muted tracking-wider font-bangers">
             {String(current + 1).padStart(2, "0")} /{" "}
             {String(totalSlides).padStart(2, "0")}
           </p>

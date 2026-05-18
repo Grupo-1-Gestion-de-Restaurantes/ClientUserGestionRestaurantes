@@ -4,11 +4,15 @@ import { useGSAP } from '@gsap/react';
 import { useProgress } from '@react-three/drei';
 import star from '../../../assets/img/star.svg';
 import { useSoundStore } from '../store/useSoundStore';
+import { useState } from 'react';
+import { FloatingText } from '../../../shared/components/ui/FloatingText';
+import { useUIStore } from '../../../shared/store/useUIStore';
 
 gsap.registerPlugin(useGSAP);
 
-export const LoadingScreen = ({ onStart }) => {
+export const LoadingScreen = ({ onPortalOpen, onStart }) => {
   const containerRef = useRef(null);
+  const [titleAnimationFinished, setTitleAnimationFinished] = useState(false);
   const hasAnimatedBtn = useRef(false);
 
   const { progress } = useProgress();
@@ -16,7 +20,9 @@ export const LoadingScreen = ({ onStart }) => {
 
   // Main entrance animation
   useGSAP(() => {
-    const tl = gsap.timeline();
+    const tl = gsap.timeline({
+      onComplete: () => setTitleAnimationFinished(true)
+    });
 
     // 1. Stars appear one by one in the CENTER
     tl.to('.star', {
@@ -82,11 +88,11 @@ export const LoadingScreen = ({ onStart }) => {
 
   }, { scope: containerRef });
 
-  // Show START button when models are loaded
+  // Show START button when models are loaded AND title is done
   useGSAP(() => {
-    if (isLoaded && !hasAnimatedBtn.current) {
+    if (isLoaded && titleAnimationFinished && !hasAnimatedBtn.current) {
       hasAnimatedBtn.current = true;
-      gsap.to('.start-btn', {
+      gsap.to('.start-btn-group', {
         opacity: 1,
         y: -10,
         duration: 0.5,
@@ -94,27 +100,56 @@ export const LoadingScreen = ({ onStart }) => {
         pointerEvents: 'auto',
       });
     }
-  }, [isLoaded]);
+  }, [isLoaded, titleAnimationFinished]);
 
   const handleStart = () => {
     // Init ambient sound (requires user gesture)
     useSoundStore.getState().initAudio();
 
-    // Animate loading screen out
+    // Libera hovers globales (letras EXPRESS, iconos flotantes) en cuanto el
+    // usuario interactúa con el botón START.
+    useUIStore.getState().unlockIntro();
+
+    // Notify HomePage to reveal main content (opacity 100 on the rest of the page)
+    onPortalOpen();
+
+    // Measure where the hero portal oval actually is on screen right now
+    const heroPortalEl = document.querySelector('[data-hero-portal]');
+    let finalClipPath = "ellipse(190px 280px at 50% 50%)"; // fallback
+    if (heroPortalEl) {
+      const rect = heroPortalEl.getBoundingClientRect();
+      const cx = ((rect.left + rect.width / 2) / window.innerWidth * 100).toFixed(2);
+      const cy = ((rect.top + rect.height / 2) / window.innerHeight * 100).toFixed(2);
+      const rx = Math.round(rect.width / 2);
+      const ry = Math.round(rect.height / 2);
+      finalClipPath = `ellipse(${rx}px ${ry}px at ${cx}% ${cy}%)`;
+    }
+
+    // Animate loading screen into a portal!
     const tl = gsap.timeline({
       onComplete: () => onStart(),
     });
 
-    tl.to('.start-btn', {
+    gsap.set(containerRef.current, { clipPath: "ellipse(150% 150% at 50% 50%)" });
+
+    // Hide everything inside the loading screen first
+    tl.to('.loading-content', {
       scale: 0.8,
       opacity: 0,
-      duration: 0.2,
+      duration: 0.3,
       ease: 'power3.in',
     })
+    // Shrink the red background to land exactly on the hero portal
     .to(containerRef.current, {
-      yPercent: -100,
-      duration: 0.9,
-      ease: 'power3.inOut',
+      clipPath: finalClipPath,
+      duration: 1.2,
+      ease: "power2.inOut",
+    })
+    // Fade out so the hero portal takes over seamlessly
+    .to(containerRef.current, {
+      opacity: 0,
+      duration: 0.5,
+      ease: "power2.out",
     });
   };
 
@@ -123,57 +158,54 @@ export const LoadingScreen = ({ onStart }) => {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-landing-red"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-primary will-change-[clip-path]"
     >
-      {/* Stars — centered */}
-      <div className="stars-container absolute inset-0 flex items-center justify-center gap-3 pointer-events-none">
-        {[...Array(5)].map((_, i) => (
-          <img
-            key={i}
-            src={star}
-            alt=""
-            width={50}
-            height={50}
-            className="star opacity-0 scale-50"
-          />
-        ))}
-      </div>
-
-      {/* Logo letters */}
-      <div className="flex flex-col items-center">
-        <div className="flex overflow-hidden pb-4 gap-1">
-          {title.split('').map((char, i) => (
-            <span
+      <div className="loading-content relative w-full h-full flex flex-col items-center justify-center">
+        {/* Stars — centered */}
+        <div className="stars-container absolute inset-0 flex items-center justify-center gap-3 pointer-events-none">
+          {[...Array(5)].map((_, i) => (
+            <img
               key={i}
-              className="logo-letter font-bangers text-6xl md:text-8xl font-black text-white opacity-0 inline-block drop-shadow-lg tracking-wider"
-            >
-              {char}
-            </span>
+              src={star}
+              alt=""
+              width={50}
+              height={50}
+              className="star opacity-0 scale-50"
+            />
           ))}
         </div>
 
-        {/* Real loading progress bar */}
-        <div className="sub-logo opacity-0 w-64 h-2 bg-black/20 rounded-full mt-4 overflow-hidden">
-          <div
-            className="h-full bg-white rounded-full transition-all duration-300"
-            style={{ width: `${progress}%` }}
+        {/* Logo letters */}
+        <div className="flex flex-col items-center">
+          <FloatingText
+            text={title}
+            wrapperClassName="flex overflow-hidden pb-4 gap-1"
+            letterClassName="logo-letter font-bangers text-6xl md:text-8xl font-black text-white opacity-0 inline-block drop-shadow-lg tracking-wider cursor-default"
           />
+
+          {/* Real loading progress bar */}
+          <div className="sub-logo opacity-0 w-64 h-2 bg-black/20 rounded-full mt-4 overflow-hidden">
+            <div
+              className="h-full bg-white rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Bottom: START button + message */}
-      <div className="absolute bottom-12 flex flex-col gap-6 items-center">
-        <button
-          className="start-btn opacity-0 pointer-events-none bg-white text-black font-bangers text-2xl tracking-widest px-10 py-3 rounded-lg border-[3px] border-black shadow-brutal transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] active:scale-95"
-          onClick={handleStart}
-        >
-          START
-        </button>
+        {/* Bottom: START button + message */}
+        <div className="start-btn-group absolute bottom-12 flex flex-col gap-6 items-center opacity-0 pointer-events-none">
+          <button
+            className="bg-white text-black font-bangers text-2xl tracking-widest px-10 py-3 rounded-lg border-[3px] border-black shadow-brutal transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] active:scale-95"
+            onClick={handleStart}
+          >
+            START
+          </button>
 
-        <p className="text-white/80 text-base flex items-center gap-2 font-medium">
-          Immersive sound ahead. Use headphones for best effect{' '}
-          <span className="text-lg">🎧</span>
-        </p>
+          <p className="text-white/80 text-base flex items-center gap-2 font-medium">
+            Immersive sound ahead. Use headphones for best effect{' '}
+            <span className="text-lg">🎧</span>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -22,7 +22,7 @@
   --color-brand-yellow-light: #f6de3e;
   --color-brand-yellow-soft: #fdf6c0;
 
-  /* Semantic Aliases */
+  /* ─── Strict Palette (Semantic Aliases) ─── */
   --color-background-base: #111317;
   --color-primary: #C1292E;
   --color-secondary: #F1D302;
@@ -31,11 +31,46 @@
   --color-text-primary: #f0f0f2;
   --color-text-secondary: #9ca3af;
   --color-border-subtle: rgba(255, 255, 255, 0.06);
+
+  /* Surfaces (dark dominant scale) */
+  --color-surface-1: #111317;
+  --color-surface-2: #181b21;
+  --color-surface-3: #20242c;
+  --color-surface-4: #2a2f38;
+
+  /* Primary / Secondary tints */
+  --color-primary-soft: rgba(193, 41, 46, 0.12);
+  --color-primary-glow: rgba(193, 41, 46, 0.45);
+  --color-secondary-soft: rgba(241, 211, 2, 0.14);
+  --color-secondary-glow: rgba(241, 211, 2, 0.40);
+
+  /* Strokes */
+  --color-stroke-strong: #000000;
+  --color-stroke-soft: rgba(255, 255, 255, 0.08);
+  --color-stroke-yellow: #F1D302;
+  --color-stroke-red: #C1292E;
+
+  /* On-color text */
+  --color-on-primary: #FFFFFF;
+  --color-on-secondary: #111317;
+  --color-on-base: #F5F5F7;
+  --color-on-base-muted: rgba(245, 245, 247, 0.65);
+  --color-on-base-faint: rgba(245, 245, 247, 0.40);
 }
 
 /* ─── Smooth Scroll ─── */
-html {
+html, body, #root  {
   scroll-behavior: smooth;
+  cursor: url("/home/cursor.svg") 0 0, auto;
+}
+
+a, 
+button, 
+input[type="button"], 
+input[type="submit"], 
+[role="button"],
+.pointer-cursor {
+  cursor: url('/home/pointer.svg') 0 0, pointer !important;
 }
 
 /* ─── Landing Animations ─── */
@@ -54,6 +89,14 @@ html {
   to { transform: rotate(360deg); }
 }
 
+@keyframes vibrate {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(5deg); }
+  100% { transform: rotate(0deg); }
+}
+
 .animate-float {
   animation: float-star 4s ease-in-out infinite;
 }
@@ -67,7 +110,11 @@ html {
 }
 
 .animate-spin-slow {
-  animation: spin-slow 20s linear infinite;
+  animation: spin-slow 2s linear infinite;
+}
+
+.animate-vibrate {
+  animation: vibrate 0.3s linear infinite;
 }
 
 /* ─── Text Stroke (Neo-Brutalist) ─── */
@@ -93,4 +140,92 @@ html {
 /* ─── Bangers Font Family ─── */
 .font-bangers {
   font-family: 'Bangers', cursive;
+}
+
+/* ─── Masks (radial & directional fades) ─── */
+.mask-radial-fade {
+  -webkit-mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
+          mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
+}
+.mask-bottom-fade {
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+          mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+}
+.mask-top-fade {
+  -webkit-mask-image: linear-gradient(to top, black 70%, transparent 100%);
+          mask-image: linear-gradient(to top, black 70%, transparent 100%);
+}
+
+/* ─── Decorative backgrounds ─── */
+.bg-grid-faint {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.bg-grid-red {
+  background-image:
+    linear-gradient(rgba(193,41,46,0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(193,41,46,0.10) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+.bg-radial-primary {
+  background-image: radial-gradient(ellipse at center, rgba(193,41,46,0.55) 0%, rgba(193,41,46,0) 70%);
+}
+.bg-radial-secondary {
+  background-image: radial-gradient(ellipse at center, rgba(241,211,2,0.40) 0%, rgba(241,211,2,0) 70%);
+}
+
+@layer utilities {
+  .bg-checkerboard {
+    background-image: conic-gradient(
+      rgba(0, 0, 0, 0.2) 25%,
+      transparent 25% 50%,
+      rgba(0, 0, 0, 0.2) 50% 75%,
+      transparent 75%
+    );
+    background-size: 40px 40px;
+  }
+}
+
+/* ─── Glow shadows ─── */
+.glow-primary {
+  box-shadow: 0 0 80px -10px rgba(193, 41, 46, 0.55);
+}
+.glow-secondary {
+  box-shadow: 0 0 60px -10px rgba(241, 211, 2, 0.45);
+}
+.glow-primary-sm {
+  box-shadow: 0 0 30px -6px rgba(193, 41, 46, 0.45);
+}
+.glow-secondary-sm {
+  box-shadow: 0 0 26px -6px rgba(241, 211, 2, 0.40);
+}
+
+/* ─── Diagonal divider (clip-path) ─── */
+.clip-diagonal-top {
+  clip-path: polygon(0 16px, 100% 0, 100% 100%, 0 100%);
+}
+.clip-diagonal-bottom {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), 0 100%);
+}
+
+/* ─── Fade-in-up keyframe (used by tooltips, success states) ─── */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.35s ease-out both;
+}
+
+/* ─── Reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-delay,
+  .animate-twinkle,
+  .animate-spin-slow,
+  .animate-fade-in-up {
+    animation: none !important;
+  }
 }

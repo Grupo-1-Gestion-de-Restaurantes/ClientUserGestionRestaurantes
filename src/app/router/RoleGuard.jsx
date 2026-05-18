@@ -1,13 +1,14 @@
-import { Navigate } from "react-router-dom";
-import { useAuthStore } from "../../features/auth/store/useAuthStore";
+import { Navigate } from 'react-router-dom';
+import { useAuthStore } from '../../features/auth/store/useAuthStore';
 
-export const RoleGuard = ({ children, allowedRoles }) => {
-  const { user } = useAuthStore();
+export const RoleGuard = ({ children, allowedRole = [] }) => {
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  // Si el rol del usuario no está en la lista permitida, lo mandamos a unauthorized
-  if (!allowedRoles.includes(user?.role)) {
+  const hasAccess = isAuthenticated && allowedRole.includes(user?.role);
+
+  if (!hasAccess) {
     return <Navigate to="/unauthorized" replace />;
   }
-
   return children;
 };

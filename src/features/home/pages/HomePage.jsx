@@ -1,19 +1,35 @@
-import { useState, useEffect, useRef } from 'react';
-import { CustomCursor } from '../components/CustomCursor';
-import { LoadingScreen } from '../components/LoadingScreen';
-import { Navbar } from '../components/Navbar';
-import { HeroSection } from '../components/HeroSection';
-import { HowItWorks } from '../components/HowItWorks';
-import { GiftSection } from '../components/GiftSection';
-import { FeaturesSection } from '../components/FeaturesSection';
-import { LocationsSection } from '../components/LocationsSection';
-import { PartnersMarquee } from '../components/PartnersMarquee';
-import { Footer } from '../components/Footer';
+import { useState, useEffect, useRef } from "react";
+import { LoadingScreen } from "../components/LoadingScreen";
+import { Navbar, Footer } from "../../../shared/components/layout";
+import { HeroSection } from "../components/HeroSection";
+import { HowItWorks } from "../components/HowItWorks";
+import { AboutSection } from "../components/AboutSection";
+import { GiftSection } from "../components/GiftSection";
+import { FeaturesSection } from "../components/FeaturesSection";
+import { StatsSection } from "../components/StatsSection";
+import { TestimonialsSection } from "../components/TestimonialsSection";
+import { LocationsSection } from "../components/LocationsSection";
+import { FAQSection } from "../components/FAQSection";
+import { CTAPartners } from "../components/CTAPartners";
+import { PartnersMarquee } from "../components/PartnersMarquee";
 
 export const HomePage = () => {
-  const [isStarted, setIsStarted] = useState(false);
+  const [isStarting, setIsStarting] = useState(false); // Portal begins!
+  const [isStarted, setIsStarted] = useState(false); // Unmount LoadingScreen entirely
   const [heroInView, setHeroInView] = useState(true);
   const heroRef = useRef(null);
+
+  // ── Lock global scroll until portal sequence is completely finished ──
+  useEffect(() => {
+    if (!isStarted) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isStarted]);
 
   // ── Canvas optimization: pause Hero Canvas when out of viewport ──
   useEffect(() => {
@@ -21,7 +37,7 @@ export const HomePage = () => {
 
     const observer = new IntersectionObserver(
       ([entry]) => setHeroInView(entry.isIntersecting),
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
     observer.observe(heroRef.current);
 
@@ -29,30 +45,34 @@ export const HomePage = () => {
   }, [isStarted]);
 
   return (
-    <main className="relative bg-[var(--color-background-base)] min-h-screen font-sans">
-      
-      {/* 1. Custom Cursor */}
-      <CustomCursor />
+    <main className="relative bg-transparent min-h-screen font-sans">
+      {/* 2. Loading Screen */}
+      {!isStarted && (
+        <LoadingScreen 
+          onPortalOpen={() => setIsStarting(true)}
+          onStart={() => setIsStarted(true)} 
+        />
+      )}
 
-      {/* 2. Loading Screen (slides up on START) */}
-      {!isStarted && <LoadingScreen onStart={() => setIsStarted(true)} />}
-
-      {/* 3. Main Content — rendered behind LoadingScreen so Canvas initializes at full size */}
-      <div 
-        className={`transition-opacity duration-700 ${
-          isStarted ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+      {/* 3. Main Content — revealed when portal opens */}
+      <div
+        className={`transition-opacity duration-1000 ${
+          isStarting ? "opacity-100" : "opacity-0 pointer-events-none"
+        } relative z-10`}
       >
         {/* Navbar — fixed, always visible */}
         <Navbar />
 
         {/* Hero — pauses its Canvas when scrolled out of view */}
         <div ref={heroRef}>
-          <HeroSection paused={!heroInView} />
+          <HeroSection paused={!heroInView} isStarted={isStarting} />
         </div>
 
         {/* How It Works — scroll-pinned with its own Canvas */}
         <HowItWorks />
+
+        {/* Quiénes somos */}
+        <AboutSection />
 
         {/* Gift Section */}
         <GiftSection />
@@ -60,8 +80,20 @@ export const HomePage = () => {
         {/* Features */}
         <FeaturesSection />
 
+        {/* Stats / números */}
+        <StatsSection />
+
+        {/* Testimonios */}
+        <TestimonialsSection />
+
         {/* Locations */}
         <LocationsSection />
+
+        {/* FAQ */}
+        <FAQSection />
+
+        {/* CTA hacia /partners */}
+        <CTAPartners />
 
         {/* Partners Marquee */}
         <PartnersMarquee />

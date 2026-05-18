@@ -26,6 +26,12 @@ const MODEL_CONFIGS = [
 const BASE_ROTATION = [0.1, -0.3, 0.1];
 const BASE_SCALE = 0.65;
 
+const SLIDER_CAMERA_POSES = [
+  { pos: [-1.5, 0.25, 45], target: [0, 0, 0], fov: 45 },
+  { pos: [1.35, 0.6, 44], target: [0, 0, 0], fov: 45 },
+  { pos: [-0.9, -0.25, 45.5], target: [0, 0, 0], fov: 45 },
+];
+
 /**
  * Deep-clone a THREE.Object3D and all materials so each instance is independent.
  * Centers the clone at world origin based on its bounding box.
@@ -49,11 +55,22 @@ function cloneAndCenter(node) {
   return clone;
 }
 
-export const HeroModels = ({ activeIndex }) => {
+export const HeroModels = ({ activeIndex, isStarting }) => {
+  const offsetGroupRef = useRef(null);
   const groupRef = useRef(null);
   const [displayedIndex, setDisplayedIndex] = useState(activeIndex);
   const displayedIndexRef = useRef(activeIndex);
   const transitionTimeline = useRef(null);
+
+  const blenderCamRef = useRef(null);
+  const camInitRef = useRef(false);
+  const camRigRef = useRef({
+    pos: new THREE.Vector3(0, 0, 45),
+    target: new THREE.Vector3(0, 0, 0),
+    fov: 45,
+  });
+  const tmpQuat = useMemo(() => new THREE.Quaternion(), []);
+  const lastFovRef = useRef(null);
 
   useEffect(() => {
     displayedIndexRef.current = displayedIndex;
@@ -64,12 +81,13 @@ export const HeroModels = ({ activeIndex }) => {
   }, []);
 
   const { nodes, animations, scene } = useGLTF("/three/slider_model.glb");
+  const { scene: cameraScene } = useGLTF("/three/slider_camera.glb");
   const { gl } = useThree();
 
   useLayoutEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.outputColorSpace = THREE.SRGBColorSpace;
-    gl.toneMappingExposure = 1.4;
+    gl.toneMappingExposure = 1.0;
   }, [gl]);
 
   // Clone and center each model group independently
@@ -92,6 +110,71 @@ export const HeroModels = ({ activeIndex }) => {
     firstAction?.reset?.();
     firstAction?.play();
   }, [actions, displayedIndex]);
+
+  useEffect(() => {
+    if (camInitRef.current) return;
+    camInitRef.current = true;
+
+    blenderCamRef.current = null;
+    cameraScene.updateMatrixWorld(true);
+    cameraScene.traverse((obj) => {
+      if (blenderCamRef.current) return;
+      if (obj.isCamera) blenderCamRef.current = obj;
+    });
+
+    const pose = SLIDER_CAMERA_POSES[activeIndex] || SLIDER_CAMERA_POSES[0];
+    camRigRef.current.pos.set(pose.pos[0], pose.pos[1], pose.pos[2]);
+    camRigRef.current.target.set(pose.target[0], pose.target[1], pose.target[2]);
+    camRigRef.current.fov = pose.fov;
+  }, [cameraScene, activeIndex]);
+
+  useGSAP(
+    () => {
+      const pose = SLIDER_CAMERA_POSES[activeIndex] || SLIDER_CAMERA_POSES[0];
+      const rig = camRigRef.current;
+
+      gsap.to(rig.pos, {
+        x: pose.pos[0],
+        y: pose.pos[1],
+        z: pose.pos[2],
+        duration: 0.7,
+        ease: "power3.inOut",
+        overwrite: true,
+      });
+
+      gsap.to(rig.target, {
+        x: pose.target[0],
+        y: pose.target[1],
+        z: pose.target[2],
+        duration: 0.7,
+        ease: "power3.inOut",
+        overwrite: true,
+      });
+
+      gsap.to(rig, {
+        fov: pose.fov,
+        duration: 0.7,
+        ease: "power3.inOut",
+        overwrite: true,
+      });
+    },
+    { dependencies: [activeIndex] },
+  );
+
+  // ── Initial Portal Entrance Animation ──
+  useGSAP(() => {
+    if (isStarting && groupRef.current) {
+      const g = groupRef.current;
+      gsap.fromTo(g.position, 
+        { z: -50 }, 
+        { z: 0, duration: 1.8, ease: "power3.out" }
+      );
+      gsap.fromTo(g.scale, 
+        { x: 0, y: 0, z: 0 }, 
+        { x: BASE_SCALE, y: BASE_SCALE, z: BASE_SCALE, duration: 1.5, ease: "elastic.out(1, 0.6)", delay: 0.1 }
+      );
+    }
+  }, [isStarting]);
 
   // ── Carousel Transition with Y-axis parallax spin ──
   useGSAP(
@@ -146,7 +229,27 @@ export const HeroModels = ({ activeIndex }) => {
   );
 
   // Subtle spin on individual food items
-  useFrame(() => {
+  useFrame((state) => {
+    const blenderCam = blenderCamRef.current;
+    if (blenderCam) {
+      const rig = camRigRef.current;
+      blenderCam.position.copy(rig.pos);
+      blenderCam.lookAt(rig.target);
+      blenderCam.updateMatrixWorld(true);
+
+      state.camera.position.setFromMatrixPosition(blenderCam.matrixWorld);
+      blenderCam.getWorldQuaternion(tmpQuat);
+      state.camera.quaternion.copy(tmpQuat);
+
+      if (blenderCam.isPerspectiveCamera && typeof rig.fov === "number") {
+        if (lastFovRef.current !== rig.fov) {
+          lastFovRef.current = rig.fov;
+          state.camera.fov = rig.fov;
+          state.camera.updateProjectionMatrix();
+        }
+      }
+    }
+
     const spinKeys = MODEL_CONFIGS[displayedIndexRef.current]?.spinNodes ?? [];
     for (const key of spinKeys) {
       const node = nodes[key];
@@ -159,22 +262,25 @@ export const HeroModels = ({ activeIndex }) => {
   return (
     <>
       {/* ── Environment map for PBR color accuracy (cheese yellow, etc.) ── */}
-      <Environment preset="city" environmentIntensity={1.2} />
+      <Environment preset="city" environmentIntensity={0.8} />
 
-      <ambientLight intensity={3} color="#ffffff" />
-      <directionalLight position={[10, 10, 10]} intensity={4} color="#fdf6c0" />
+      <ambientLight intensity={1.5} color="#ffffff" />
+      <directionalLight position={[5, 10, 5]} intensity={2.5} color="#ffffff" />
 
-      <group
-        ref={groupRef}
-        scale={[BASE_SCALE, BASE_SCALE, BASE_SCALE]}
-        rotation={BASE_ROTATION}
-      >
-        <Float floatIntensity={2} rotationIntensity={0.8} speed={1.25}>
-          <primitive object={activeClone} key={displayedIndex} />
-        </Float>
+      <group ref={offsetGroupRef} position={[-4, 0, -3]}>
+        <group
+          ref={groupRef}
+          scale={[0, 0, 0]}
+          rotation={BASE_ROTATION}
+        >
+          <Float floatIntensity={2} rotationIntensity={0.8} speed={1.25}>
+            <primitive object={activeClone} key={displayedIndex} />
+          </Float>
+        </group>
       </group>
     </>
   );
 };
 
 useGLTF.preload("/three/slider_model.glb");
+useGLTF.preload("/three/slider_camera.glb");
