@@ -129,6 +129,16 @@ export const AuthPage = () => {
                       Inicia sesión y pide en <span className="text-primary">segundos</span>.
                     </h1>
                     <LoginForm onSwitch={setCurrentView} />
+                    
+                    <div className="mt-6 flex justify-center lg:justify-start">
+                      <a 
+                        href="/" 
+                        className="text-xs font-bangers tracking-[0.2em] text-on-base-faint hover:text-primary transition-colors flex items-center gap-2 group"
+                      >
+                        <span className="h-px w-4 bg-on-base-faint group-hover:bg-primary transition-colors" />
+                        VOLVER AL INICIO
+                      </a>
+                    </div>
                   </div>
                 )}
 

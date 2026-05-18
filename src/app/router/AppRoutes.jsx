@@ -7,6 +7,8 @@ import { RestaurantsPage } from '../../features/dashboard/pages/RestaurantsPage'
 import { PromotionsPage } from '../../features/dashboard/pages/PromotionsPage';
 import { ProfilePage } from '../../features/dashboard/pages/ProfilePage';
 import { OrderHistoryPage } from '../../features/dashboard/pages/OrderHistoryPage';
+import { ReservationsPage } from '../../features/dashboard/pages/ReservationsPage';
+import { EventsPage } from '../../features/dashboard/pages/EventsPage';
 import { AuthPage } from '../../features/auth/pages/AuthPage';
 import { VerifyEmailPage } from '../../features/auth/pages/VerifyEmailPage';
 import { ResetPasswordPage } from '../../features/auth/pages/ResetPasswordPage';

@@ -1,8 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
+  Calendar,
   History,
   LayoutGrid,
   LogOut,
+  Sparkles,
   Store,
   Tag,
   User,
@@ -13,6 +15,8 @@ const nav = [
   { to: '/dashboard', label: 'Pedido', icon: LayoutGrid },
   { to: '/dashboard/restaurants', label: 'Restaurantes', icon: Store },
   { to: '/dashboard/promotions', label: 'Promos', icon: Tag },
+  { to: '/dashboard/reservations', label: 'Reservas', icon: Calendar },
+  { to: '/dashboard/events', label: 'Eventos', icon: Sparkles },
 ];
 
 export const DashboardSidebar = ({ onNavigate, variant = 'sidebar' }) => {

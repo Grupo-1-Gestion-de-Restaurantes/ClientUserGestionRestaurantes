@@ -4,6 +4,12 @@ import { Toaster } from 'react-hot-toast';
 import { AppRoutes } from './router/AppRoutes';
 import { AppShell } from './layouts/AppShell';
 import { useAuthStore } from '../features/auth/store/useAuthStore';
+import { useSocket } from '../shared/hooks/useSocket';
+
+const SocketInitializer = () => {
+  useSocket();
+  return null;
+};
 
 export const App = () => {
   useEffect(() => {
@@ -12,6 +18,7 @@ export const App = () => {
 
   return (
     <BrowserRouter>
+      <SocketInitializer />
       <AppShell>
         <AppRoutes />
       </AppShell>

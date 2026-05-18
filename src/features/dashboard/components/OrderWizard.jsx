@@ -47,32 +47,51 @@ export const OrderWizard = () => {
   const promotions = usePromotionsStore((s) => s.promotions);
   
   const cartItems = useOrderStore((s) => s.cartItems);
+  const orderType = useOrderStore((s) => s.orderType);
   const addItem = useOrderStore((s) => s.addItem);
   const setAddressId = useOrderStore((s) => s.setAddressId);
   const addressId = useOrderStore((s) => s.addressId);
   const setPromotionId = useOrderStore((s) => s.setPromotionId);
   const setPromoCode = useOrderStore((s) => s.setPromoCode);
   
+  const addresses = info?.addresses || (info?.address ? [info.address] : []);
+  const isSetupComplete = useMemo(() => {
+    const hasRestaurant = !!selectedRestaurantId;
+    const hasAddress = addresses.length > 0;
+    const hasSelectedAddress = !!addressId || addresses.some((a) => a.isDefault);
+
+    if (!hasRestaurant) return false;
+    if (orderType === 'delivery') return hasAddress && hasSelectedAddress;
+    return true;
+  }, [selectedRestaurantId, addresses, addressId, orderType]);
+
   useEffect(() => {
     if (!user?._id && !user?.id) return;
     const userId = user._id || user.id;
     const key = `clientuser:orderWizardDone:${userId}`;
     const hasRun = localStorage.getItem(key);
     
-    if (!hasRun) {
+    // Auto-open if never run OR if setup is incomplete
+    if (!hasRun || !isSetupComplete) {
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+        fetchMyInfo();
+        fetchRestaurants();
+        fetchPromotions();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [user, isSetupComplete, fetchMyInfo, fetchRestaurants, fetchPromotions]);
+
+  useEffect(() => {
+    if (!isForcedOpen) return;
+    const timer = setTimeout(() => {
       setIsOpen(true);
       fetchMyInfo();
       fetchRestaurants();
       fetchPromotions();
-    }
-  }, [user, fetchMyInfo, fetchRestaurants, fetchPromotions]);
-
-  useEffect(() => {
-    if (!isForcedOpen) return;
-    setIsOpen(true);
-    fetchMyInfo();
-    fetchRestaurants();
-    fetchPromotions();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [isForcedOpen, fetchMyInfo, fetchRestaurants, fetchPromotions]);
   
   const handleFinish = () => {
@@ -86,7 +105,6 @@ export const OrderWizard = () => {
   
   if (!isOpen) return null;
   
-  const addresses = info?.addresses || (info?.address ? [info.address] : []);
   const selectedRestaurant = restaurants.find(r => (r._id || r.id) === selectedRestaurantId);
   const dishes = selectedRestaurant?.dishes || [];
   
