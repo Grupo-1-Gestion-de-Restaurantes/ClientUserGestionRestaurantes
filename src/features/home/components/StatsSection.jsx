@@ -55,17 +55,17 @@ export const StatsSection = () => {
           La estación <span className="text-primary">no para</span>
         </h2>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {STATS.map((s) => (
             <div
               key={s.label}
-              className="bg-surface-2 border-[3px] border-stroke-strong rounded-xl shadow-brutal p-6 flex flex-col items-center hover:bg-surface-3 transition-colors"
+              className="bg-surface-2 border-[3px] border-stroke-strong rounded-xl shadow-brutal p-5 md:p-6 flex flex-col items-center hover:bg-surface-3 transition-colors"
             >
-              <p className="font-bangers text-5xl md:text-6xl text-secondary leading-none">
+              <p className="font-bangers text-4xl sm:text-5xl md:text-5xl text-secondary leading-none flex flex-wrap justify-center items-baseline gap-1">
                 <span data-stat={s.value}>0</span>
-                <span>{s.suffix}</span>
+                <span className="text-2xl sm:text-3xl opacity-90">{s.suffix}</span>
               </p>
-              <p className="mt-3 text-on-base text-sm md:text-base font-bold tracking-wide uppercase">
+              <p className="mt-3 text-on-base text-xs md:text-sm font-bold tracking-wide uppercase text-center">
                 {s.label}
               </p>
             </div>

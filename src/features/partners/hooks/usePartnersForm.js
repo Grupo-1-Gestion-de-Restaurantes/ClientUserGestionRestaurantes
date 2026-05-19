@@ -8,8 +8,11 @@ export const DEFAULT_VALUES = {
   email: '',
   phone: '',
   cityAddress: '',
-  branches: 1,
-  cuisine: '',
+  city: 'Guatemala',
+  categories: '',
+  openingTime: '',
+  closingTime: '',
+  capacity: 1,
   message: '',
   acceptTerms: false,
 };
@@ -29,7 +32,7 @@ export const usePartnersForm = () => {
     try {
       const res = await submitPartnerLead({
         ...values,
-        branches: Number(values.branches),
+        capacity: Number(values.capacity),
       });
       setSuccess(res?.id ?? null);
       form.reset(DEFAULT_VALUES);

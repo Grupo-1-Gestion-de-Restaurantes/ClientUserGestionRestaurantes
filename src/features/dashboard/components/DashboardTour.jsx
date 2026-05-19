@@ -1,131 +1,87 @@
-import { useEffect, useMemo, useState } from 'react';
-import { STATUS, Joyride } from 'react-joyride';
+import { useEffect } from 'react';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
 import { useAuthStore } from '../../auth/store/useAuthStore';
-import { useRestaurantsStore } from '../store/useRestaurantsStore';
-import { useClientStore } from '../store/useClientStore';
-import { useOrderStore } from '../store/useOrderStore';
 import { useUIStore } from '../../../shared/store/useUIStore';
 
 export const DashboardTour = () => {
   const user = useAuthStore((s) => s.user);
-  const [run, setRun] = useState(false);
-
-  const selectedRestaurantId = useRestaurantsStore((s) => s.selectedRestaurantId);
-  const clientInfo = useClientStore((s) => s.info);
-  const fetchMyInfo = useClientStore((s) => s.fetchMyInfo);
-  const orderType = useOrderStore((s) => s.orderType);
-  const addressId = useOrderStore((s) => s.addressId);
   const requestId = useUIStore((s) => s.dashboardTourRequestId);
 
-  const addresses = clientInfo?.addresses || (clientInfo?.address ? [clientInfo.address] : []);
-
-  const isSetupComplete = useMemo(() => {
-    const hasRestaurant = !!selectedRestaurantId;
-    const hasAddress = addresses.length > 0;
-    const hasSelectedAddress = !!addressId || addresses.some((a) => a.isDefault);
-
-    if (!hasRestaurant) return false;
-    if (orderType === 'delivery') return hasAddress && hasSelectedAddress;
-    return true;
-  }, [selectedRestaurantId, addresses, addressId, orderType]);
-
   useEffect(() => {
-    if (!user?._id && !user?.id) return;
-    if (!clientInfo) fetchMyInfo();
-  }, [user, clientInfo, fetchMyInfo]);
+    const userId = user?._id || user?.id;
+    if (!userId) return;
 
-  useEffect(() => {
-    if (!user?._id && !user?.id) return;
-    const userId = user._id || user.id;
-    const key = `clientuser:onboarding:${userId}`;
-    const state = localStorage.getItem(key);
+    const tourKey = `clientuser:onboarding:${userId}`;
+    const wizardKey = `clientuser:orderWizardDone:${userId}`;
 
-    const shouldAutoRun = !state || (state === 'later' && !isSetupComplete);
-    if (!shouldAutoRun) return;
+    const startTour = () => {
+      const driverObj = driver({
+        showProgress: true,
+        allowClose: true,
+        overlayColor: '#000000aa',
+        nextBtnText: 'Siguiente',
+        prevBtnText: 'Atrás',
+        doneBtnText: 'Finalizar',
+        steps: [
+          {
+            element: '#tour-sidebar',
+            popover: {
+              title: 'Panel de Navegación',
+              description: 'Aquí puedes moverte entre las diferentes secciones: explorar restaurantes, ver tus pedidos anteriores, gestionar tu perfil o revisar tus eventos.',
+              side: "right",
+              align: 'start'
+            }
+          },
+          {
+            element: '#tour-restaurants',
+            popover: {
+              title: 'Explorar Sabores',
+              description: 'Aquí verás todos los restaurantes disponibles. Selecciona uno para ver su menú y promociones.',
+              side: "bottom",
+              align: 'start'
+            }
+          },
+          {
+            element: '#tour-cart',
+            popover: {
+              title: 'Tu Carrito',
+              description: 'Aquí se irán agregando los platos que selecciones. Podrás ver el total, aplicar promociones y finalizar tu pedido.',
+              side: "left",
+              align: 'start'
+            }
+          },
+          {
+            element: '#tour-history',
+            popover: {
+              title: 'Historial y Facturas',
+              description: 'Consulta tus órdenes pasadas y descarga tus facturas cuando lo necesites.',
+              side: "right",
+              align: 'start'
+            }
+          }
+        ],
+        onDismisssed: () => {
+          localStorage.setItem(tourKey, 'done');
+        },
+        onDestroyStarted: () => {
+          localStorage.setItem(tourKey, 'done');
+          driverObj.destroy();
+        }
+      });
 
-    const timer = setTimeout(() => {
-      setRun(true);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [user, isSetupComplete]);
+      driverObj.drive();
+    };
 
-  useEffect(() => {
-    if (!user?._id && !user?.id) return;
-    if (!requestId) return;
-    const timer = setTimeout(() => setRun(true), 250);
-    return () => clearTimeout(timer);
+    // Listen for manual requests (Repetir Recorrido)
+    if (requestId > 0) {
+      startTour();
+    }
+
+    return () => {
+      // No cleanup needed for manual requests
+    };
   }, [user, requestId]);
 
-  const handleJoyrideCallback = (data) => {
-    const { status } = data;
-    const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
-
-    if (finishedStatuses.includes(status)) {
-      setRun(false);
-      const userId = user?._id || user?.id;
-      if (userId) {
-        localStorage.setItem(
-          `clientuser:onboarding:${userId}`,
-          isSetupComplete ? 'done' : 'later',
-        );
-      }
-    }
-  };
-
-  const steps = [
-    {
-      target: '#tour-sidebar',
-      content: 'Aquí puedes navegar entre tus restaurantes, perfil e historial.',
-      disableBeacon: true,
-    },
-    {
-      target: '#tour-restaurants',
-      content: 'Explora y selecciona tus restaurantes favoritos para ver sus platos.',
-    },
-    {
-      target: '#tour-cart',
-      content: 'Este es tu ticket. Aquí aparecerán los platos que agregues a tu pedido.',
-    },
-    {
-      target: '#tour-history',
-      content: 'Revisa tus pedidos anteriores y descarga tus facturas.',
-    },
-  ];
-
-  return (
-    <Joyride
-      steps={steps}
-      run={run}
-      continuous
-      scrollToFirstStep
-      showProgress
-      showSkipButton
-      disableOverlayClose
-      callback={handleJoyrideCallback}
-      styles={{
-        options: {
-          primaryColor: '#5B5CF6',
-          zIndex: 10000,
-          backgroundColor: '#ffffff',
-          textColor: '#0f172a',
-        },
-        buttonNext: {
-          backgroundColor: '#22c55e',
-          borderRadius: '8px',
-          fontWeight: 'bold',
-        },
-        buttonBack: {
-          color: '#64748b',
-        },
-      }}
-      locale={{
-        back: 'Atrás',
-        close: 'Cerrar',
-        last: 'Finalizar',
-        next: 'Siguiente',
-        open: 'Abrir diálogo',
-        skip: 'Configurar después',
-      }}
-    />
-  );
+  return null;
 };

@@ -6,7 +6,7 @@ import { useRestaurantsStore } from '../store/useRestaurantsStore';
 import { useClientStore } from '../store/useClientStore';
 import { showError, showSuccess } from '../../../shared/utils/toast';
 
-const formatMoney = (n) => `$${Number(n || 0).toFixed(2)}`;
+const formatMoney = (n) => `Q${Number(n || 0).toFixed(2)}`;
 
 export const OrderConfirmationModal = ({ open, onClose }) => {
   const navigate = useNavigate();
@@ -22,6 +22,11 @@ export const OrderConfirmationModal = ({ open, onClose }) => {
   const restaurants = useRestaurantsStore((s) => s.restaurants);
   const selectedRestaurantId = useRestaurantsStore((s) => s.selectedRestaurantId);
 
+  const promoCode = useOrderStore((s) => s.promoCode);
+  const promotionId = useOrderStore((s) => s.promotionId);
+
+  const activePromotion = useOrderStore((s) => s.activePromotion);
+
   const clientInfo = useClientStore((s) => s.info);
   const fetchMyInfo = useClientStore((s) => s.fetchMyInfo);
 
@@ -31,7 +36,7 @@ export const OrderConfirmationModal = ({ open, onClose }) => {
     fetchMyInfo();
   }, [open, clientInfo, fetchMyInfo]);
 
-  const totals = useMemo(() => getTotals(), [getTotals, cartItems, orderType]);
+  const totals = useMemo(() => getTotals(), [getTotals, cartItems, orderType, promoCode, promotionId, activePromotion]);
 
   const selectedRestaurant = useMemo(
     () => restaurants.find((r) => (r._id || r.id) === selectedRestaurantId),
@@ -134,10 +139,12 @@ export const OrderConfirmationModal = ({ open, onClose }) => {
             <span className="text-on-base-muted">Sub total</span>
             <span className="text-on-base">{formatMoney(totals.subtotal)}</span>
           </div>
-          <div className="rounded-2xl bg-surface-3 border-[3px] border-stroke-strong px-4 py-3 flex items-center justify-between">
-            <span className="text-on-base-muted">Delivery</span>
-            <span className="text-on-base">{formatMoney(totals.deliveryCharge)}</span>
-          </div>
+          {orderType === 'DOMICILIO' && (
+            <div className="rounded-2xl bg-surface-3 border-[3px] border-stroke-strong px-4 py-3 flex items-center justify-between">
+              <span className="text-on-base-muted">Delivery</span>
+              <span className="text-on-base">{formatMoney(totals.deliveryCharge)}</span>
+            </div>
+          )}
           <div className="rounded-2xl bg-surface-3 border-[3px] border-stroke-strong px-4 py-3 flex items-center justify-between">
             <span className="text-on-base-muted">Descuento</span>
             <span className="text-on-base">-{formatMoney(totals.discount)}</span>

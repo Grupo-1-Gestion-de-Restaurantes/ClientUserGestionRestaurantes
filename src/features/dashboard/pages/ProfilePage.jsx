@@ -29,36 +29,68 @@ export const ProfilePage = () => {
   const loading = useClientStore((s) => s.loading);
   const error = useClientStore((s) => s.error);
   const fetchMyInfo = useClientStore((s) => s.fetchMyInfo);
+  const updateMyInfo = useClientStore((s) => s.updateMyInfo);
   const addAddress = useClientStore((s) => s.addAddress);
 
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
+    register: regAddress,
+    handleSubmit: handleAddress,
+    reset: resetAddress,
+    formState: { errors: errorsAddress },
+  } = useForm();
+
+  const {
+    register: regProfile,
+    handleSubmit: handleProfile,
+    reset: resetProfile,
+    formState: { errors: errorsProfile },
   } = useForm();
 
   useEffect(() => {
     fetchMyInfo();
   }, [fetchMyInfo]);
 
+  useEffect(() => {
+    if (info) {
+
+      resetProfile({
+        name: info.name || user?.name || '',
+        phone: info.phone || '',
+      });
+    }
+  }, [info, user, resetProfile]);
+
   const onAddAddress = async (data) => {
     const res = await addAddress(data.address);
     if (res.success) {
       showSuccess('Dirección agregada');
-      reset();
+      resetAddress();
       setAdding(false);
+      await fetchMyInfo();
     } else if (res.error) {
       showError(res.error);
     }
   };
 
-  const addresses = info?.addresses || info?.address ? [].concat(info?.addresses || info?.address) : [];
+  const onUpdateProfile = async (data) => {
+    console.log('Updating profile with data:', data);
+    const res = await updateMyInfo(data);
+    if (res.success) {
+      showSuccess('Perfil actualizado');
+      setEditing(false);
+      await fetchMyInfo();
+    } else if (res.error) {
+      showError(res.error);
+    }
+  };
+
+  const addresses = info?.addresses || (info?.address ? [info.address] : []);
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div id="tour-history" className="max-w-3xl mx-auto pb-12">
       <header className="mb-8">
         <p className="text-xs text-on-base-muted tracking-widest uppercase">Cuenta</p>
         <h1 className="mt-1 font-bangers tracking-wider text-4xl md:text-5xl text-on-base">
@@ -76,29 +108,79 @@ export const ProfilePage = () => {
             />
           ) : (
             <div className="h-16 w-16 rounded-2xl bg-primary glow-primary-sm flex items-center justify-center text-on-primary font-bangers text-3xl border-[3px] border-stroke-strong">
-              {(user?.username || user?.name || 'U').slice(0, 1).toUpperCase()}
+              {(info?.name || user?.username || user?.name || 'U').slice(0, 1).toUpperCase()}
             </div>
           )}
           <div className="min-w-0">
             <div className="text-on-base font-bangers tracking-wide text-2xl truncate">
-              {user?.username || user?.name || 'Cliente'}
+              {info?.name || user?.username || user?.name || 'Cliente'}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={logout}
-            className="ml-auto flex items-center gap-2 bg-primary text-on-primary px-3 py-2 rounded-xl border-[3px] border-stroke-strong shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] transition-all font-bangers tracking-widest text-sm"
-          >
-            <LogOut size={14} />
-            SALIR
-          </button>
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              className="flex items-center gap-2 bg-surface-3 text-on-base px-3 py-2 rounded-xl border-[3px] border-stroke-strong shadow-brutal-sm font-bangers tracking-widest text-sm"
+            >
+              {editing ? 'CANCELAR' : 'EDITAR'}
+            </button>
+            <button
+              type="button"
+              onClick={logout}
+              className="flex items-center gap-2 bg-primary text-on-primary px-3 py-2 rounded-xl border-[3px] border-stroke-strong shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] transition-all font-bangers tracking-widest text-sm"
+            >
+              <LogOut size={14} />
+              SALIR
+            </button>
+          </div>
         </div>
 
-        <div className="mt-6 space-y-3">
-          <Row icon={User} label="Nombre" value={user?.username || user?.name} />
-          <Row icon={Mail} label="Email" value={info?.email || user?.email} />
-          <Row icon={Phone} label="Teléfono" value={info?.phone} />
-        </div>
+        {editing ? (
+          <form onSubmit={handleProfile(onUpdateProfile)} className="mt-6 space-y-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-secondary font-bangers tracking-widest uppercase">Nombre</label>
+              <input
+                type="text"
+                disabled={loading}
+                {...regProfile('name', { required: 'El nombre es obligatorio' })}
+                className="w-full bg-surface-3 text-on-base border-[3px] border-stroke-strong rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-secondary"
+              />
+              {errorsProfile.name && (
+                <span className="text-primary text-xs font-bold">{errorsProfile.name.message}</span>
+              )}
+            </div>
+            
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-secondary font-bangers tracking-widest uppercase">Teléfono</label>
+              <input
+                type="text"
+                disabled={loading}
+                {...regProfile('phone', { 
+                  required: 'El teléfono es obligatorio',
+                  pattern: { value: /^[0-9]{8,15}$/, message: 'Teléfono inválido (8-15 dígitos)' }
+                })}
+                className="w-full bg-surface-3 text-on-base border-[3px] border-stroke-strong rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-secondary"
+              />
+              {errorsProfile.phone && (
+                <span className="text-primary text-xs font-bold">{errorsProfile.phone.message}</span>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-secondary text-on-secondary font-bangers tracking-widest py-3 rounded-xl border-[3px] border-stroke-strong shadow-brutal-sm"
+            >
+              {loading ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
+            </button>
+          </form>
+        ) : (
+          <div className="mt-6 space-y-3">
+            <Row icon={User} label="Nombre" value={info?.name || user?.username || user?.name} />
+            <Row icon={Mail} label="Email" value={info?.email || user?.email} />
+            <Row icon={Phone} label="Teléfono" value={info?.phone} />
+          </div>
+        )}
 
         {error ? (
           <div className="mt-4 rounded-2xl border-[3px] border-stroke-strong bg-primary/10 px-4 py-3 text-sm text-primary font-bold">
@@ -126,32 +208,32 @@ export const ProfilePage = () => {
         </div>
 
         {adding ? (
-          <form onSubmit={handleSubmit(onAddAddress)} className="flex flex-col gap-3 mb-4">
+          <form onSubmit={handleAddress(onAddAddress)} className="flex flex-col gap-3 mb-4">
             <input
               type="text"
               placeholder="Ej. Av. Siempre Viva"
               disabled={loading}
-              {...register('address.addressLine', { required: 'Ingresa una calle o avenida' })}
+              {...regAddress('address.addressLine', { required: 'Ingresa una calle o avenida' })}
               className="w-full bg-surface-3 text-on-base placeholder:text-on-base-faint border-[3px] border-stroke-strong rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-secondary"
             />
-            {errors.address?.addressLine && (
-              <span className="text-primary text-xs font-bold">{errors.address.addressLine.message}</span>
+            {errorsAddress.address?.addressLine && (
+              <span className="text-primary text-xs font-bold">{errorsAddress.address.addressLine.message}</span>
             )}
             
             <input
               type="text"
               placeholder="Número (ej. 742)"
               disabled={loading}
-              {...register('address.houseNumber', { required: 'Ingresa un número' })}
+              {...regAddress('address.houseNumber', { required: 'Ingresa un número' })}
               className="w-full bg-surface-3 text-on-base placeholder:text-on-base-faint border-[3px] border-stroke-strong rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-secondary"
             />
-            {errors.address?.houseNumber && (
-              <span className="text-primary text-xs font-bold">{errors.address.houseNumber.message}</span>
+            {errorsAddress.address?.houseNumber && (
+              <span className="text-primary text-xs font-bold">{errorsAddress.address.houseNumber.message}</span>
             )}
             
             <select
               disabled={loading}
-              {...register('address.alias')}
+              {...regAddress('address.alias')}
               className="w-full bg-surface-3 text-on-base border-[3px] border-stroke-strong rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-secondary"
             >
               <option value="Casa">Casa</option>

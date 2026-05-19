@@ -13,6 +13,7 @@ import {
 import { useOrdersStore } from '../store/useOrdersStore';
 import { useInvoicesStore } from '../store/useInvoicesStore';
 import { showError, showSuccess } from '../../../shared/utils/toast';
+import { DishImage } from '../components/DishImage';
 
 const STATUS_LABEL = {
   PENDIENTE: 'Pendiente',
@@ -77,8 +78,8 @@ const OrderRow = ({ order, onCancel }) => {
             <Receipt size={18} />
           </div>
           <div className="min-w-0 text-left">
-            <div className="text-on-base font-bangers tracking-wide text-lg truncate">
-              ORDEN #{shortId(order._id || order.id)}
+            <div className="text-on-base font-bangers tracking-wide text-lg truncate uppercase">
+              Resumen de pedido
             </div>
             <div className="text-xs text-on-base-muted">
               {formatDate(order.createdAt)} ·{' '}
@@ -94,7 +95,7 @@ const OrderRow = ({ order, onCancel }) => {
           >
             {STATUS_LABEL[status] || status}
           </span>
-          <span className="text-on-base font-bangers text-lg">${total.toFixed(2)}</span>
+          <span className="text-on-base font-bangers text-lg">Q{total.toFixed(2)}</span>
           {open ? (
             <ChevronUp size={18} className="text-on-base-muted" />
           ) : (
@@ -110,13 +111,16 @@ const OrderRow = ({ order, onCancel }) => {
               {items.map((it, i) => (
                 <li
                   key={`${order._id || order.id}-${i}`}
-                  className="flex items-center justify-between text-sm"
+                  className="flex items-center gap-3 text-sm"
                 >
-                  <div className="text-on-base font-semibold truncate">
-                    {it.quantity || it.qty || 1}× {it.name || it.dish?.name || 'Plato'}
-                  </div>
-                  <div className="text-on-base-muted font-semibold">
-                    ${Number((it.price || 0) * (it.quantity || it.qty || 1)).toFixed(2)}
+                  <DishImage src={it.photo || it.productId?.photo || it.dish?.photo} className="w-10 h-10 rounded-lg border-2 border-stroke-strong shrink-0" />
+                  <div className="flex-1 min-w-0 flex items-center justify-between">
+                    <div className="text-on-base font-semibold truncate">
+                      {it.quantity || it.qty || 1}× {it.name || it.dish?.name || 'Plato'}
+                    </div>
+                    <div className="text-on-base-muted font-semibold ml-2">
+                      Q{Number((it.price || 0) * (it.quantity || it.qty || 1)).toFixed(2)}
+                    </div>
                   </div>
                 </li>
               ))}
@@ -235,29 +239,23 @@ export const OrderHistoryPage = () => {
         </p>
       </header>
 
-      <div className="mb-6 flex items-center gap-2 rounded-2xl bg-surface-2 border-[3px] border-stroke-strong p-1 shadow-brutal-sm">
-        <button
-          type="button"
-          onClick={() => setTab('orders')}
-          className={`flex-1 rounded-xl px-4 py-2 text-xs font-bangers tracking-widest uppercase transition-all ${
-            tab === 'orders'
-              ? 'bg-secondary text-on-secondary shadow-brutal-sm'
-              : 'text-on-base-muted hover:text-on-base'
-          }`}
-        >
-          PEDIDOS
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('invoices')}
-          className={`flex-1 rounded-xl px-4 py-2 text-xs font-bangers tracking-widest uppercase transition-all ${
-            tab === 'invoices'
-              ? 'bg-secondary text-on-secondary shadow-brutal-sm'
-              : 'text-on-base-muted hover:text-on-base'
-          }`}
-        >
-          RECIBOS
-        </button>
+      <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="text-xs text-on-base-muted font-black tracking-widest uppercase">
+          Filtrar historial
+        </div>
+        <div className="relative group min-w-[180px]">
+          <select
+            value={tab}
+            onChange={(e) => setTab(e.target.value)}
+            className="w-full appearance-none bg-surface-2 border-[3px] border-stroke-strong rounded-2xl px-5 py-2 pr-10 text-xs font-bangers tracking-widest text-on-base cursor-pointer focus:border-secondary transition-all shadow-brutal-sm outline-none"
+          >
+            <option value="orders">MIS PEDIDOS</option>
+            <option value="invoices">MIS RECIBOS / FACTURAS</option>
+          </select>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-base-muted group-hover:text-secondary transition-colors">
+            <ChevronDown size={16} />
+          </div>
+        </div>
       </div>
 
       {tab === 'orders' ? (
@@ -345,7 +343,7 @@ export const OrderHistoryPage = () => {
                     <div className="text-right mr-1">
                       <div className="text-xs text-on-base-muted">Total</div>
                       <div className="text-on-base font-bangers text-xl">
-                        ${(Number(inv.total) || 0).toFixed(2)}
+                        Q{(Number(inv.total) || 0).toFixed(2)}
                       </div>
                     </div>
                     <button
@@ -449,7 +447,7 @@ export const OrderHistoryPage = () => {
                         {it.quantity || 1}× {it.name || 'Producto'}
                       </div>
                       <div className="shrink-0 text-on-base-muted font-semibold ml-3">
-                        ${(Number(it.subtotal) || 0).toFixed(2)}
+                        Q{(Number(it.subtotal) || 0).toFixed(2)}
                       </div>
                     </li>
                   ))}
@@ -461,7 +459,7 @@ export const OrderHistoryPage = () => {
 
             <div className="mt-5 flex items-center justify-between gap-3">
               <div className="font-bangers tracking-widest text-xl text-on-base">TOTAL</div>
-              <div className="font-bangers text-3xl text-secondary">${invoiceMeta.total.toFixed(2)}</div>
+              <div className="font-bangers text-3xl text-secondary">Q{invoiceMeta.total.toFixed(2)}</div>
             </div>
 
             <button

@@ -12,6 +12,7 @@ import { LocationsSection } from "../components/LocationsSection";
 import { FAQSection } from "../components/FAQSection";
 import { CTAPartners } from "../components/CTAPartners";
 import { PartnersMarquee } from "../components/PartnersMarquee";
+import { useSoundStore } from "../store/useSoundStore";
 
 export const HomePage = () => {
   const [isStarting, setIsStarting] = useState(false); // Portal begins!
@@ -21,14 +22,26 @@ export const HomePage = () => {
 
   // ── Lock global scroll until portal sequence is completely finished ──
   useEffect(() => {
-    if (!isStarted) {
+    const lockScroll = () => {
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
+      document.body.style.height = "100vh";
+      document.documentElement.style.overflow = "hidden";
+      window.scrollTo(0, 0);
     };
+
+    const unlockScroll = () => {
+      document.body.style.overflow = "";
+      document.body.style.height = "";
+      document.documentElement.style.overflow = "";
+    };
+
+    if (!isStarted) {
+      lockScroll();
+    } else {
+      unlockScroll();
+    }
+
+    return () => unlockScroll();
   }, [isStarted]);
 
   // ── Canvas optimization: pause Hero Canvas when out of viewport ──
@@ -45,7 +58,7 @@ export const HomePage = () => {
   }, [isStarted]);
 
   return (
-    <main className="relative bg-transparent min-h-screen font-sans">
+    <main className="relative bg-transparent min-h-screen font-sans overflow-x-hidden">
       {/* 2. Loading Screen */}
       {!isStarted && (
         <LoadingScreen 
@@ -63,9 +76,9 @@ export const HomePage = () => {
         {/* Navbar — fixed, always visible */}
         <Navbar />
 
-        {/* Hero — pauses its Canvas when scrolled out of view */}
+        {/* Hero — pauses its Canvas when scrolled out of view or loading screen is active */}
         <div ref={heroRef}>
-          <HeroSection paused={!heroInView} isStarted={isStarting} />
+          <HeroSection paused={!heroInView || !isStarted} isStarting={isStarting} />
         </div>
 
         {/* How It Works — scroll-pinned with its own Canvas */}

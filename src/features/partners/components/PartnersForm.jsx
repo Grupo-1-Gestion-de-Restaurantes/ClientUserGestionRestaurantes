@@ -1,19 +1,17 @@
-import { Loader2, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, ArrowRight, Lock } from 'lucide-react';
 import { usePartnersForm } from '../hooks/usePartnersForm';
 import { usePartnersStore } from '../store/usePartnersStore';
+import { useAuthStore } from '../../auth/store/useAuthStore';
+import { Link } from 'react-router-dom';
 
-const CUISINE_OPTIONS = [
-  'Comida rápida',
-  'Cafetería',
-  'Peruana',
-  'Mexicana',
-  'Italiana',
-  'Asiática',
-  'Otra',
+const CATEGORY_OPTIONS = [
+  'Gourmet',
+  'Casual',
 ];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[+\d\s\-()]{7,20}$/;
+const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 const fieldBase =
   'w-full bg-surface-1 text-on-base placeholder:text-on-base-faint border-[3px] border-stroke-strong rounded-lg px-4 py-3 font-medium focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/30 transition-colors';
@@ -34,6 +32,7 @@ export const PartnersForm = () => {
   const errorMessage = usePartnersStore((s) => s.errorMessage);
   const leadId = usePartnersStore((s) => s.leadId);
   const reset = usePartnersStore((s) => s.reset);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const isLoading = status === 'loading';
   const isSuccess = status === 'success';
@@ -56,19 +55,44 @@ export const PartnersForm = () => {
             Registra tu <span className="text-primary">restaurante</span>
           </h2>
           <p className="text-on-base-muted text-base md:text-lg mt-4 max-w-xl mx-auto">
-            Completa el formulario y un partner manager te contactará en menos de 24 horas.
+            Completa el formulario para solicitar la activación de tu restaurante en nuestra plataforma.
           </p>
         </div>
 
-        {/* Success state */}
-        {isSuccess ? (
+        {/* Auth check */}
+        {!isAuthenticated ? (
+          <div className="bg-surface-2 border-[3px] border-stroke-strong shadow-brutal rounded-2xl p-10 text-center">
+            <Lock className="text-primary mx-auto mb-4" size={48} strokeWidth={2.5} />
+            <h3 className="font-bangers text-3xl text-on-base tracking-wider">
+              INICIA SESIÓN PARA CONTINUAR
+            </h3>
+            <p className="text-on-base-muted mt-3 mb-8">
+              Debes tener una cuenta y estar autenticado para poder registrar un restaurante.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link
+                to="/auth?redirectTo=/partners"
+                className="bg-secondary text-on-secondary font-bangers text-xl px-8 py-3 rounded-xl border-[3px] border-stroke-strong shadow-brutal hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              >
+                Iniciar Sesión
+              </Link>
+              <Link
+                to="/auth?redirectTo=/partners"
+                className="bg-surface-1 text-on-base font-bangers text-xl px-8 py-3 rounded-xl border-[3px] border-stroke-strong shadow-brutal hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              >
+                Crear Cuenta
+              </Link>
+            </div>
+          </div>
+        ) : isSuccess ? (
+          /* Success state */
           <div className="bg-surface-2 border-[3px] border-secondary shadow-brutal rounded-2xl p-10 text-center animate-fade-in-up">
             <CheckCircle2 className="text-secondary mx-auto" size={56} strokeWidth={2.5} />
             <h3 className="font-bangers text-3xl md:text-4xl text-on-base mt-5 tracking-wider">
               ¡SOLICITUD <span className="text-secondary">ENVIADA</span>!
             </h3>
             <p className="text-on-base-muted mt-3 max-w-md mx-auto">
-              Recibimos tu información. Un partner manager te contactará en menos de 24 horas.
+              Recibimos tu información. Un administrador revisará tu solicitud y te notificará por correo.
             </p>
             {leadId && (
               <p className="text-on-base-faint text-xs mt-4 font-bangers tracking-widest uppercase">
@@ -146,24 +170,40 @@ export const PartnersForm = () => {
               <input
                 id="phone"
                 type="tel"
-                placeholder="+502 0000 0000"
+                placeholder="00000000"
                 className={fieldBase}
                 aria-invalid={!!errors.phone}
                 {...register('phone', {
                   required: 'Este campo es obligatorio',
-                  pattern: { value: PHONE_REGEX, message: 'Teléfono inválido' },
+                  pattern: { value: /^[0-9]{8,15}$/, message: 'Teléfono inválido (8-15 dígitos)' },
                 })}
               />
               <ErrorText>{errors.phone?.message}</ErrorText>
             </div>
 
-            {/* City / Address */}
+            {/* City */}
             <div>
-              <Label htmlFor="cityAddress" required>Ciudad / Dirección</Label>
+              <Label htmlFor="city" required>Ciudad</Label>
+              <input
+                id="city"
+                type="text"
+                placeholder="Guatemala"
+                className={fieldBase}
+                aria-invalid={!!errors.city}
+                {...register('city', {
+                  required: 'Este campo es obligatorio',
+                })}
+              />
+              <ErrorText>{errors.city?.message}</ErrorText>
+            </div>
+
+            {/* Address */}
+            <div className="md:col-span-2">
+              <Label htmlFor="cityAddress" required>Dirección Completa</Label>
               <input
                 id="cityAddress"
                 type="text"
-                placeholder="Ciudad de Guatemala"
+                placeholder="Calle principal, zona 10..."
                 className={fieldBase}
                 aria-invalid={!!errors.cityAddress}
                 {...register('cityAddress', {
@@ -173,53 +213,85 @@ export const PartnersForm = () => {
               <ErrorText>{errors.cityAddress?.message}</ErrorText>
             </div>
 
-            {/* Branches */}
+            {/* Categories */}
             <div>
-              <Label htmlFor="branches" required>Número de sucursales</Label>
-              <input
-                id="branches"
-                type="number"
-                min={1}
-                max={999}
-                className={fieldBase}
-                aria-invalid={!!errors.branches}
-                {...register('branches', {
-                  required: 'Este campo es obligatorio',
-                  min: { value: 1, message: 'Debe ser al menos 1' },
-                  max: { value: 999, message: 'Máximo 999' },
-                  valueAsNumber: true,
-                })}
-              />
-              <ErrorText>{errors.branches?.message}</ErrorText>
-            </div>
-
-            {/* Cuisine */}
-            <div>
-              <Label htmlFor="cuisine" required>Tipo de cocina</Label>
+              <Label htmlFor="categories" required>Categoría</Label>
               <select
-                id="cuisine"
+                id="categories"
                 className={fieldBase}
-                aria-invalid={!!errors.cuisine}
+                aria-invalid={!!errors.categories}
                 defaultValue=""
-                {...register('cuisine', {
+                {...register('categories', {
                   required: 'Selecciona una opción',
                 })}
               >
                 <option value="" disabled>Selecciona…</option>
-                {CUISINE_OPTIONS.map((c) => (
+                {CATEGORY_OPTIONS.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
-              <ErrorText>{errors.cuisine?.message}</ErrorText>
+              <ErrorText>{errors.categories?.message}</ErrorText>
+            </div>
+
+            {/* Capacity */}
+            <div>
+              <Label htmlFor="capacity" required>Capacidad de personas</Label>
+              <input
+                id="capacity"
+                type="number"
+                min={1}
+                className={fieldBase}
+                aria-invalid={!!errors.capacity}
+                {...register('capacity', {
+                  required: 'Este campo es obligatorio',
+                  min: { value: 1, message: 'Debe ser al menos 1' },
+                  valueAsNumber: true,
+                })}
+              />
+              <ErrorText>{errors.capacity?.message}</ErrorText>
+            </div>
+
+            {/* Opening Time */}
+            <div>
+              <Label htmlFor="openingTime" required>Hora de Apertura</Label>
+              <input
+                id="openingTime"
+                type="text"
+                placeholder="09:00"
+                className={fieldBase}
+                aria-invalid={!!errors.openingTime}
+                {...register('openingTime', {
+                  required: 'Requerido (HH:mm)',
+                  pattern: { value: TIME_REGEX, message: 'Formato HH:mm' },
+                })}
+              />
+              <ErrorText>{errors.openingTime?.message}</ErrorText>
+            </div>
+
+            {/* Closing Time */}
+            <div>
+              <Label htmlFor="closingTime" required>Hora de Cierre</Label>
+              <input
+                id="closingTime"
+                type="text"
+                placeholder="22:00"
+                className={fieldBase}
+                aria-invalid={!!errors.closingTime}
+                {...register('closingTime', {
+                  required: 'Requerido (HH:mm)',
+                  pattern: { value: TIME_REGEX, message: 'Formato HH:mm' },
+                })}
+              />
+              <ErrorText>{errors.closingTime?.message}</ErrorText>
             </div>
 
             {/* Message */}
             <div className="md:col-span-2">
-              <Label htmlFor="message">Mensaje (opcional)</Label>
+              <Label htmlFor="message">Descripción del restaurante</Label>
               <textarea
                 id="message"
                 rows={4}
-                placeholder="Cuéntanos sobre tu restaurante…"
+                placeholder="Cuéntanos sobre la especialidad de tu restaurante…"
                 className={`${fieldBase} resize-none`}
                 aria-invalid={!!errors.message}
                 {...register('message', {
@@ -239,7 +311,7 @@ export const PartnersForm = () => {
                 {...register('acceptTerms', { required: 'Debes aceptar los términos' })}
               />
               <label htmlFor="acceptTerms" className="text-on-base-muted text-sm">
-                Acepto que un partner manager me contacte y la{' '}
+                Acepto los términos de servicio y la{' '}
                 <a href="#" className="text-secondary underline hover:text-secondary/80">política de privacidad</a>.
                 {errors.acceptTerms && (
                   <span className="block text-primary text-xs font-bold mt-1">

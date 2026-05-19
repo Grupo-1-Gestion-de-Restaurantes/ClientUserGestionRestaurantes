@@ -1,10 +1,11 @@
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { showError, showSuccess } from '../../../shared/utils/toast';
 
 export const LoginForm = ({ onSwitch }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const login = useAuthStore((s) => s.login);
   const loading = useAuthStore((s) => s.loading);
   const error = useAuthStore((s) => s.error);
@@ -19,7 +20,8 @@ export const LoginForm = ({ onSwitch }) => {
     const res = await login({ emailOrUsername: data.emailOrUsername, password: data.password });
     if (res.success) {
       showSuccess('¡Bienvenido de vuelta!');
-      navigate('/dashboard');
+      const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+      navigate(redirectTo);
       return;
     }
     if (res.error && !res.requiresTwoFactor) {

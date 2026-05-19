@@ -1,30 +1,22 @@
-import { HelpCircle, Rocket } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import { useUIStore } from '../../../shared/store/useUIStore';
 
 export const DashboardHelpFab = () => {
   const requestDashboardTour = useUIStore((s) => s.requestDashboardTour);
-  const openOrderWizard = useUIStore((s) => s.openOrderWizard);
 
   return (
-    <div className="fixed bottom-4 left-4 z-[80] flex flex-col gap-2">
+    <div 
+      className="flex flex-row items-center justify-center gap-2 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 py-2"
+      style={{ isolation: 'isolate' }}
+    >
       <button
         type="button"
-        onClick={() => requestDashboardTour()}
-        className="h-12 w-12 rounded-2xl bg-surface-2 border-[3px] border-stroke-strong shadow-brutal-sm flex items-center justify-center text-on-base hover:text-secondary transition-colors"
-        aria-label="Ayuda"
-        title="Ayuda"
+        onClick={requestDashboardTour}
+        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-3 text-on-base-muted border-[2px] border-stroke-strong font-bangers tracking-widest text-xs hover:bg-surface-4 hover:text-on-base transition-colors shadow-brutal-sm active:translate-y-[1px]"
+        title="Repetir recorrido"
       >
-        <HelpCircle size={18} strokeWidth={2.5} />
-      </button>
-
-      <button
-        type="button"
-        onClick={() => openOrderWizard()}
-        className="h-12 w-12 rounded-2xl bg-primary text-on-primary border-[3px] border-stroke-strong shadow-brutal-sm flex items-center justify-center hover:brightness-110 transition-colors"
-        aria-label="Configurar pedido"
-        title="Configurar"
-      >
-        <Rocket size={18} strokeWidth={2.5} />
+        <HelpCircle size={14} />
+        <span>RECORRIDO</span>
       </button>
     </div>
   );

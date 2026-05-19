@@ -1,4 +1,3 @@
-import { GridBackground } from './GridBackground';
 import { FloatingBackground } from './FloatingBackground';
 
 export const GlobalBackground = () => (
@@ -18,6 +17,5 @@ export const GlobalBackground = () => (
     </div>
 
     <FloatingBackground />
-    <GridBackground />
   </>
 );

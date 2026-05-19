@@ -1,65 +1,72 @@
 import { create } from "zustand";
 
-/**
- * Ambient space audio using Web Audio API oscillators.
- * No external files needed — generates a subtle deep-space drone.
- */
 export const useSoundStore = create((set, get) => ({
-  audioContext: null,
-  gainNode: null,
-  isPlaying: false,
+  audio: null,
+  isPlaying: true,
+  isActuallyPlaying: false,
 
-  /** Call ONLY after a user gesture (click on START) to comply with browser autoplay policy. */
   initAudio: () => {
-    if (get().audioContext) return; // Already initialized
+    let audio = get().audio;
+    if (audio) return audio;
 
-    const ctx = new AudioContext();
-    const masterGain = ctx.createGain();
-    masterGain.gain.value = 0.04;
-    masterGain.connect(ctx.destination);
+    audio = new Audio("/home/ambient.mp3");
+    audio.loop = true;
+    audio.volume = 0.4;
 
-    // Low-pass filter for warmth
-    const filter = ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = 180;
-    filter.connect(masterGain);
+    audio.oncanplaythrough = () => console.log("Ambient audio ready to play");
+    audio.onerror = (e) => console.error("Error loading ambient audio:", e);
 
-    // Two slightly detuned sine oscillators → beating "space hum"
-    const osc1 = ctx.createOscillator();
-    osc1.type = "sine";
-    osc1.frequency.value = 60;
-    osc1.connect(filter);
-    osc1.start();
-
-    const osc2 = ctx.createOscillator();
-    osc2.type = "sine";
-    osc2.frequency.value = 63; // 3 Hz beat
-    osc2.connect(filter);
-    osc2.start();
-
-    // Subtle high shimmer
-    const shimmer = ctx.createOscillator();
-    shimmer.type = "triangle";
-    shimmer.frequency.value = 440;
-    const shimmerGain = ctx.createGain();
-    shimmerGain.gain.value = 0.005;
-    shimmer.connect(shimmerGain).connect(masterGain);
-    shimmer.start();
-
-    set({ audioContext: ctx, gainNode: masterGain, isPlaying: true });
+    set({ audio });
+    return audio;
   },
 
-  toggle: () => {
-    const { audioContext, isPlaying, gainNode } = get();
-    if (!audioContext || !gainNode) return;
+  play: async () => {
+    let { audio, isPlaying } = get();
+    if (!audio) {
+      audio = get().initAudio();
+    }
 
-    const now = audioContext.currentTime;
-    if (isPlaying) {
-      gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
-      set({ isPlaying: false });
-    } else {
-      gainNode.gain.linearRampToValueAtTime(0.04, now + 0.5);
-      set({ isPlaying: true });
+    if (audio && isPlaying) {
+      try {
+        await audio.play();
+        set({ isActuallyPlaying: true });
+      } catch (err) {
+        console.log("Playback blocked or failed:", err);
+        set({ isActuallyPlaying: false });
+      }
+    }
+  },
+
+  pause: () => {
+    const { audio } = get();
+    if (audio) {
+      audio.pause();
+      set({ isActuallyPlaying: false });
+    }
+  },
+
+  toggle: async () => {
+    let { audio, isPlaying, isActuallyPlaying } = get();
+    if (!audio) {
+      audio = get().initAudio();
+    }
+
+    const nextState = !isActuallyPlaying;
+    set({ isPlaying: nextState });
+
+    if (audio) {
+      if (nextState) {
+        try {
+          await audio.play();
+          set({ isActuallyPlaying: true });
+        } catch (err) {
+          console.log("Playback blocked or failed:", err);
+          set({ isActuallyPlaying: false, isPlaying: false });
+        }
+      } else {
+        audio.pause();
+        set({ isActuallyPlaying: false });
+      }
     }
   },
 }));

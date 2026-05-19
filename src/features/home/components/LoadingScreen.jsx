@@ -103,8 +103,10 @@ export const LoadingScreen = ({ onPortalOpen, onStart }) => {
   }, [isLoaded, titleAnimationFinished]);
 
   const handleStart = () => {
-    // Init ambient sound (requires user gesture)
-    useSoundStore.getState().initAudio();
+    // Init and play ambient sound (requires user gesture)
+    const sound = useSoundStore.getState();
+    sound.initAudio();
+    sound.play();
 
     // Libera hovers globales (letras EXPRESS, iconos flotantes) en cuanto el
     // usuario interactúa con el botón START.

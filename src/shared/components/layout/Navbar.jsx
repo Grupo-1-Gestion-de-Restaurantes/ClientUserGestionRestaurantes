@@ -112,18 +112,6 @@ export const Navbar = () => {
             Acceder
           </Link>
         )}
-
-        {/* Sound toggle (solo en Home, donde aplica) */}
-        {isHome && (
-          <button
-            onClick={toggle}
-            className="hidden md:flex items-center gap-2 border-[3px] border-stroke-strong bg-surface-2 text-on-base rounded-full px-3 py-1.5 shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_black] transition-all active:scale-95"
-            aria-label={isPlaying ? 'Mute sound' : 'Unmute sound'}
-          >
-            <span className="text-xs font-bold">{isPlaying ? 'On' : 'Off'}</span>
-            {isPlaying ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
-        )}
       </div>
     </nav>
   );

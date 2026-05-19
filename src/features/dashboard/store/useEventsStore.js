@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { eventsApi } from '../../../shared/api/events';
-import { useAuthStore } from '../../auth/store/useAuthStore';
 
 export const useEventsStore = create((set, get) => ({
   events: [],
@@ -12,18 +11,15 @@ export const useEventsStore = create((set, get) => ({
     const res = await eventsApi.getAll(params);
     
     if (res.success) {
-      set({ events: res.events || [], loading: false });
+      set({ events: res.data || res.events || [], loading: false });
     } else {
       set({ error: res.message, loading: false });
     }
   },
 
   subscribeToEvent: async (id) => {
-    const token = useAuthStore.getState().token;
-    if (!token) return { success: false, message: 'No session' };
-
     set({ loading: true, error: null });
-    const res = await eventsApi.subscribe(id, token);
+    const res = await eventsApi.subscribe(id);
     
     if (res.success) {
       set({ loading: false });

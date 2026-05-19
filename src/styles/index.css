@@ -219,6 +219,33 @@ input[type="submit"],
   animation: fade-in-up 0.35s ease-out both;
 }
 
+/* ─── Custom Scrollbar ─── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(241, 211, 2, 0.3); /* secondary color tint */
+}
+
+/* ─── Joyride Fixes ─── */
+.joyride-beacon, 
+[class*="joyride-beacon"],
+.react-joyride__beacon {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* ─── Reduced motion ─── */
 @media (prefers-reduced-motion: reduce) {
   .animate-float,
@@ -228,4 +255,59 @@ input[type="submit"],
   .animate-fade-in-up {
     animation: none !important;
   }
+}
+
+/* ─── Driver.js Custom Theme ─── */
+.driver-popover {
+  background-color: var(--color-surface-2) !important;
+  color: var(--color-text-primary) !important;
+  border: 3px solid var(--color-stroke-strong) !important;
+  border-radius: 1.5rem !important;
+  box-shadow: 4px 4px 0px var(--color-stroke-strong) !important;
+  font-family: 'Inter', sans-serif !important;
+  padding: 1.5rem !important;
+}
+.driver-popover-title {
+  font-family: 'Bangers', cursive !important;
+  font-size: 1.5rem !important;
+  letter-spacing: 0.05em !important;
+  color: var(--color-primary) !important;
+  margin-bottom: 0.5rem !important;
+}
+.driver-popover-description {
+  color: var(--color-text-secondary) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+}
+.driver-popover-footer button {
+  background-color: var(--color-surface-3) !important;
+  color: var(--color-text-primary) !important;
+  border: 2px solid var(--color-stroke-strong) !important;
+  border-radius: 0.75rem !important;
+  font-family: 'Bangers', cursive !important;
+  letter-spacing: 0.05em !important;
+  padding: 0.5rem 1rem !important;
+  text-shadow: none !important;
+  box-shadow: 2px 2px 0px var(--color-stroke-strong) !important;
+  transition: all 0.2s !important;
+}
+.driver-popover-footer button:hover {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+.driver-popover-footer .driver-popover-next-btn {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-stroke-strong) !important;
+}
+.driver-popover-footer .driver-popover-close-btn {
+  color: var(--color-error) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+.driver-popover-footer .driver-popover-close-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+.driver-popover-arrow {
+  display: none !important;
 }

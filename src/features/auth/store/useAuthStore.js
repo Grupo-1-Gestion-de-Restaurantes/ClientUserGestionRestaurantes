@@ -19,12 +19,97 @@ export const useAuthStore = create(
       error: null,
       isLoadingAuth: true,
 
-      checkAuth: () => {
-        const { token } = get();
-        set({ isLoadingAuth: false, isAuthenticated: Boolean(token) });
+      checkAuth: async () => {
+        const { token, refreshToken } = get();
+        if (!token) {
+          set({ isLoadingAuth: false, isAuthenticated: false });
+          return;
+        }
+
+        try {
+          set({ isLoadingAuth: true });
+          // Validamos el token obteniendo el perfil
+          const { data } = await authApi.getProfile();
+          set({ 
+            user: data?.userDetails || get().user, 
+            isAuthenticated: true, 
+            isLoadingAuth: false 
+          });
+          
+          // Iniciar refresco automático si tenemos refresh token
+          if (refreshToken) {
+            get().setupRefreshTimer();
+          }
+        } catch (err) {
+          // Si el perfil falla (ej. DB borrada o token inválido), limpiamos sesión
+          console.error('Session validation failed:', err);
+          get().logout();
+          set({ isLoadingAuth: false });
+        }
       },
 
-      logout: () => set({ ...emptySession, loading: false, error: null }),
+      setupRefreshTimer: () => {
+        const { expiresAt } = get();
+        if (!expiresAt) return;
+
+        // Limpiar timer previo
+        if (window._authRefreshTimer) clearTimeout(window._authRefreshTimer);
+
+        const expiresDate = new Date(expiresAt);
+        const now = new Date();
+        // Refrescar 1 minuto antes de que expire
+        const delay = expiresDate.getTime() - now.getTime() - 60000;
+
+        if (delay > 0) {
+          window._authRefreshTimer = setTimeout(async () => {
+            try {
+              const { refreshToken } = get();
+              if (!refreshToken) return;
+              
+              const { data } = await authApi.refreshToken(refreshToken);
+              set({
+                token: data.accessToken,
+                refreshToken: data.refreshToken,
+                expiresAt: data.expiresAt,
+                user: data.userDetails || get().user
+              });
+              get().setupRefreshTimer(); // Re-programar
+            } catch (err) {
+              console.error('Auto-refresh failed:', err);
+              get().logout();
+            }
+          }, delay);
+        } else {
+          // Si ya expiró o está por expirar, intentar refrescar ya
+          get().refreshToken();
+        }
+      },
+
+      refreshToken: async () => {
+        const { refreshToken: rToken } = get();
+        if (!rToken) return { success: false };
+        
+        try {
+          const { data } = await authApi.refreshToken(rToken);
+          set({
+            token: data.accessToken,
+            refreshToken: data.refreshToken,
+            expiresAt: data.expiresAt,
+            user: data.userDetails || get().user,
+            isAuthenticated: true
+          });
+          get().setupRefreshTimer();
+          return { success: true };
+        } catch (err) {
+          get().logout();
+          return { success: false };
+        }
+      },
+
+      logout: () => {
+        if (window._authRefreshTimer) clearTimeout(window._authRefreshTimer);
+        set({ ...emptySession, loading: false, error: null });
+      },
 
       login: async ({ emailOrUsername, password }) => {
         try {
@@ -118,10 +203,10 @@ export const useAuthStore = create(
         }
       },
 
-      resetPassword: async (email, token, newPassword) => {
+      resetPassword: async (token, newPassword) => {
         try {
           set({ loading: true, error: null });
-          const { data } = await authApi.resetPassword(email, token, newPassword);
+          const { data } = await authApi.resetPassword(token, newPassword);
           set({ loading: false });
           return { success: true, data };
         } catch (err) {

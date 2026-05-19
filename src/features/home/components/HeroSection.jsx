@@ -12,58 +12,68 @@ import hotDog_bubble from "../../../assets/img/hotDog_bubble.svg";
 
 gsap.registerPlugin(useGSAP);
 
+/**
+ * ── CONSTANTES DE AJUSTE DEL PORTAL ──
+ */
+const PORTAL_CONFIG = {
+  // Dimensiones (Desktop)
+  desktopWidth: "380px",
+  desktopHeight: "530px",
+
+  // Dimensiones (Mobile)
+  mobileWidth: "250px",
+  mobileHeight: "375px",
+
+  // Clip-path del portal En forma de ovalo
+  clipPath: "ellipse(50% 50% at 60% 40%)",
+
+  colorTransitionDuration: "0.5s",
+
+  canvasScale: 1.2,
+  canvasTranslateY: "-5%",
+
+  borderThickness: "8px",
+  borderColor: "var(--color-stroke-strong, #000000)",
+  borderHighlightThickness: "8px",
+  borderHighlightColor: "#ffffff",
+  ellipseScale: 0.8,
+};
+
 const BUBBLE_IMAGES = [bubble, pizza_bubble, hotDog_bubble];
 
 export const HeroSection = ({ paused = false, isStarting = false }) => {
-  const { current, progress, goTo, slideData, totalSlides } = useHeroSlider();
-  const portalRef = useRef(null);
+  const { current, progress, goTo, slideData, totalSlides } =
+    useHeroSlider(paused);
   const textRef = useRef(null);
   const bubbleRef = useRef(null);
   const firstSlideRef = useRef(true);
 
-  // ── Synced transition: portal + bubble + text ──
+  // ── Synced transition: bubble + text ──
   useGSAP(
     () => {
-      const portal = portalRef.current;
       const text = textRef.current;
       const bubbleEl = bubbleRef.current;
-      if (!portal || !text) return;
+      if (!text) return;
 
       if (firstSlideRef.current) {
         firstSlideRef.current = false;
-        gsap.set(portal, { scale: 1 });
         gsap.set(text, { opacity: 1, y: 0 });
         return;
       }
 
       const tl = gsap.timeline({ defaults: { overwrite: "auto" } });
 
-      // Portal: scale pulse
-      tl.to(portal, {
-        scale: 0,
-        duration: 0.3,
-        ease: "power3.in",
-        transformOrigin: "50% 50%",
-      })
-      .to(portal, {
-        scale: 1,
-        duration: 0.75,
-        ease: "elastic.out(1, 0.55)",
-        transformOrigin: "50% 50%",
-      });
-
-      // Text: fade-out/up then fade-in/up (synced with portal)
+      // Text: fade-out/up then fade-in/up
       tl.fromTo(
         text,
         { opacity: 1, y: 0 },
         { opacity: 0, y: -20, duration: 0.25, ease: "power2.in" },
-        0
-      )
-      .fromTo(
+        0,
+      ).fromTo(
         text,
         { opacity: 0, y: 20 },
         { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
-        0.35
+        0.35,
       );
 
       // Bubble image: scale pulse
@@ -72,17 +82,16 @@ export const HeroSection = ({ paused = false, isStarting = false }) => {
           bubbleEl,
           { scale: 1, rotate: 0 },
           { scale: 0, rotate: -10, duration: 0.25, ease: "power3.in" },
-          0
-        )
-        .fromTo(
+          0,
+        ).fromTo(
           bubbleEl,
           { scale: 0, rotate: 10 },
           { scale: 1, rotate: 0, duration: 0.6, ease: "elastic.out(1, 0.5)" },
-          0.35
+          0.35,
         );
       }
     },
-    { dependencies: [current] }
+    { dependencies: [current] },
   );
 
   return (
@@ -109,53 +118,85 @@ export const HeroSection = ({ paused = false, isStarting = false }) => {
 
       {/* ── 3-Column Hero Grid ── */}
       <div className="relative grid h-screen grid-cols-1 items-center px-6 md:px-10 lg:px-16 md:grid-cols-[1fr_1.4fr_1.2fr] gap-4">
-
         {/* ── Col 1: Manga Speech Bubble ── */}
         <div className="hidden md:flex flex-col items-start justify-center gap-6 relative">
-          <div ref={bubbleRef} className="relative w-full max-w-[380px] will-change-transform">
+          <div
+            ref={bubbleRef}
+            className="relative w-full max-w-[380px] will-change-transform"
+          >
             <img
               src={BUBBLE_IMAGES[current]}
               alt={slideData.bubbleTitle}
               className="w-full h-auto drop-shadow-lg"
             />
           </div>
-          <img
-            src={star}
-            alt=""
-            className="w-10 h-10 animate-float"
-          />
+          <img src={star} alt="" className="w-10 h-10 animate-float" />
         </div>
 
-        {/* ── Col 2: 3D Canvas + Portal ── */}
+        {/* Col 2: Simplified 2-Layer Portal */}
         <div className="relative flex h-full items-center justify-center">
-          {/* Red oval portal behind the 3D model */}
           <div
-            ref={portalRef}
             data-hero-portal
-            className="absolute z-0 w-[300px] h-[440px] md:w-[380px] md:h-[560px] rounded-[50%] bg-primary glow-primary will-change-transform"
-            aria-hidden
-          />
-
-          {/* R3F Canvas */}
-          <div className="absolute z-10 w-[380px] h-[480px] md:w-[550px] md:h-[600px]">
-            <Canvas
-              camera={{ position: [0, 0, 45], fov: 45 }}
-              gl={{ antialias: true, alpha: true }}
-              onCreated={({ gl }) => {
-                gl.setClearColor(0x000000, 0);
+            className="portal-wrapper relative flex items-center justify-center"
+            style={{
+              width: "var(--p-w)",
+              height: "var(--p-h)",
+              transform: `scale(${PORTAL_CONFIG.ellipseScale})`,
+              "--p-w":
+                window.innerWidth < 768
+                  ? PORTAL_CONFIG.mobileWidth
+                  : PORTAL_CONFIG.desktopWidth,
+              "--p-h":
+                window.innerWidth < 768
+                  ? PORTAL_CONFIG.mobileHeight
+                  : PORTAL_CONFIG.desktopHeight,
+            }}
+          >
+            {/* CAPA 1: Fondo de Color del Portal (Elipse visual) */}
+            <div
+              className="portal-bg absolute inset-0 z-0"
+              style={{
+                backgroundColor: slideData.portalColor,
+                borderRadius: "50%",
+                border: `${PORTAL_CONFIG.borderThickness} solid ${slideData.borderColor || PORTAL_CONFIG.borderColor}`,
+                transition: `background-color ${PORTAL_CONFIG.colorTransitionDuration} ease, border-color ${PORTAL_CONFIG.colorTransitionDuration} ease, box-shadow ${PORTAL_CONFIG.colorTransitionDuration} ease`,
+                boxShadow: `inset 0 0 0 ${PORTAL_CONFIG.borderHighlightThickness} ${slideData.borderColor || PORTAL_CONFIG.borderColor}, inset 0 0 60px rgba(0,0,0,0.4)`,
               }}
-              frameloop={paused ? "never" : "always"}
+            />
+
+            {/* CAPA 2: Three.js Canvas - Desbordando el portal para efecto 3D vs 2D */}
+            <div
+              className="three-canvas-container absolute pointer-events-none"
+              style={{
+                inset: "-20%", // Se expande un 20% hacia afuera de los bordes del portal
+                zIndex: 10,
+                overflow: "visible",
+              }}
             >
-              <Suspense fallback={null}>
-                <HeroModels activeIndex={current} isStarting={isStarting} />
-              </Suspense>
-            </Canvas>
+              <div className="w-full h-full">
+                <Canvas
+                  camera={{ position: [0, 0, 45], fov: 45 }}
+                  gl={{ antialias: true, alpha: true }}
+                  onCreated={({ gl }) => {
+                    gl.setClearColor(0x000000, 0);
+                  }}
+                  frameloop={paused ? "never" : "always"}
+                >
+                  <Suspense fallback={null}>
+                    <HeroModels activeIndex={current} isStarting={isStarting} />
+                  </Suspense>
+                </Canvas>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* ── Col 3: Text + Controls ── */}
-        <div ref={textRef} className="z-10 flex flex-col gap-5 will-change-transform">
-          <h1 className="font-bangers text-4xl md:text-5xl lg:text-6xl font-black leading-tight whitespace-pre-line text-secondary drop-shadow-sm tracking-wide">
+        <div
+          ref={textRef}
+          className="z-10 flex flex-col gap-5 will-change-transform"
+        >
+          <h1 className="font-bangers text-3xl md:text-4xl lg:text-5xl font-black leading-tight whitespace-pre-line text-secondary drop-shadow-sm tracking-wide">
             {slideData.title}
           </h1>
 

@@ -3,7 +3,7 @@ import { useDishesStore } from '../store/useDishesStore';
 import { useOrderStore } from '../store/useOrderStore';
 import { DishImage } from './DishImage';
 
-export const PopularDishes = ({ query = '', category = null }) => {
+export const PopularDishes = ({ query = '', category = null, sortBy = 'popular' }) => {
   const dishes = useDishesStore((s) => s.dishes);
   const loading = useDishesStore((s) => s.loading);
   const error = useDishesStore((s) => s.error);
@@ -11,12 +11,31 @@ export const PopularDishes = ({ query = '', category = null }) => {
 
   const normalized = String(query).trim().toLowerCase();
 
-  let filtered = dishes;
-  if (category) filtered = filtered.filter((d) => (d.category || 'Sin categoría') === category);
-  if (normalized)
+  let filtered = [...dishes];
+  if (category) {
+    filtered = filtered.filter((d) => {
+        const type = String(d.dishType || 'OTRO').toUpperCase();
+        const target = String(category).toUpperCase();
+        return type === target;
+    });
+  }
+  
+  if (normalized) {
     filtered = filtered.filter((d) =>
-      `${d.name || ''} ${d.description || ''}`.toLowerCase().includes(normalized),
+      `${d.name || ''} ${d.description || ''} ${d.dishType || ''}`.toLowerCase().includes(normalized),
     );
+  }
+
+  // Final check to handle empty results after filtering
+  const hasResults = filtered.length > 0;
+
+  // Sorting logic
+  filtered.sort((a, b) => {
+    if (sortBy === 'price-low') return (Number(a.price) || 0) - (Number(b.price) || 0);
+    if (sortBy === 'price-high') return (Number(b.price) || 0) - (Number(a.price) || 0);
+    if (sortBy === 'rating') return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+    return 0; // Default or 'popular' (keep original order)
+  });
 
   return (
     <section className="mt-8">
@@ -89,7 +108,7 @@ export const PopularDishes = ({ query = '', category = null }) => {
               </div>
 
               <div className="mt-4 flex items-center justify-between">
-                <div className="text-on-base font-bangers text-xl">${price.toFixed(2)}</div>
+                <div className="text-on-base font-bangers text-xl">Q{price.toFixed(2)}</div>
                 {typeof d.rating === 'number' ? (
                   <div className="flex items-center gap-1 text-xs text-on-base-muted">
                     <Star size={14} className="text-secondary" fill="currentColor" />
@@ -102,7 +121,7 @@ export const PopularDishes = ({ query = '', category = null }) => {
         })}
       </div>
 
-      {!loading && !filtered.length && !error ? (
+      {!loading && !hasResults && !error ? (
         <div className="mt-6 rounded-3xl bg-surface-2 border-[3px] border-stroke-strong p-10 text-center text-sm text-on-base-muted">
           No encontramos platos que coincidan con tu búsqueda.
         </div>

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { buildCategoriesFromDishes, useDishesStore } from '../store/useDishesStore';
-import { DishImage } from './DishImage';
+import { ChevronDown, Filter } from 'lucide-react';
 
 export const CategoryRow = ({ selected, onSelect }) => {
   const dishes = useDishesStore((s) => s.dishes);
@@ -11,55 +11,35 @@ export const CategoryRow = ({ selected, onSelect }) => {
   if (!categories.length && !loading) return null;
 
   return (
-    <section className="mt-6">
-      <div className="flex items-center justify-between gap-4">
+    <section className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-secondary/20 flex items-center justify-center border-2 border-secondary">
+          <Filter size={18} className="text-secondary" />
+        </div>
         <div>
-          <div className="text-on-base font-bangers tracking-wider text-xl">CATEGORÍAS</div>
-          <div className="text-xs text-on-base-muted">
-            {categories.length} categoría{categories.length === 1 ? '' : 's'} disponibles
+          <div className="text-on-base font-bangers tracking-wider text-xl leading-none">FILTRAR</div>
+          <div className="text-[10px] text-on-base-muted font-black tracking-widest uppercase mt-1">
+            Por tipo de comida
           </div>
         </div>
-        {selected ? (
-          <button
-            type="button"
-            onClick={() => onSelect?.(null)}
-            className="text-xs font-bold text-primary hover:text-secondary transition-colors"
-          >
-            Limpiar filtro
-          </button>
-        ) : null}
       </div>
 
-      <div className="mt-4 flex items-center gap-3 overflow-x-auto pb-2">
-        {loading && !categories.length ? (
-          <div className="text-xs text-on-base-muted">Cargando…</div>
-        ) : null}
-
-        {categories.map((c) => {
-          const active = selected === c.id;
-          return (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => onSelect?.(active ? null : c.id)}
-              className={`shrink-0 w-24 rounded-2xl liquid-glass px-2 py-3 transition-all ${
-                active
-                  ? 'bg-secondary text-black font-bold'
-                  : 'hover:bg-surface-3'
-              }`}
-            >
-              <DishImage
-                src={c.photo}
-                alt={c.name}
-                className="h-12 w-12 rounded-2xl mx-auto border border-stroke-soft"
-                iconSize={18}
-              />
-              <div className="mt-2 text-[11px] font-bold uppercase tracking-wide truncate">
-                {c.name}
-              </div>
-            </button>
-          );
-        })}
+      <div className="relative group min-w-[200px]">
+        <select
+          value={selected || ''}
+          onChange={(e) => onSelect?.(e.target.value || null)}
+          className="w-full appearance-none bg-surface-2 border-[3px] border-stroke-strong rounded-2xl px-5 py-3 pr-12 text-sm font-bangers tracking-widest text-on-base cursor-pointer focus:border-primary transition-all shadow-brutal-sm outline-none"
+        >
+          <option value="">TODAS LAS CATEGORÍAS</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name.toUpperCase()}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-base-muted group-hover:text-primary transition-colors">
+          <ChevronDown size={18} />
+        </div>
       </div>
     </section>
   );

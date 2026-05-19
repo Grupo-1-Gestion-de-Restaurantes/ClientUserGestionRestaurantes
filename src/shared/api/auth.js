@@ -13,8 +13,8 @@ export const getProfile = async () => {
   return await axiosAuth.get("/auth/profile");
 }
 
-export const verifyEmail = async (data) => {
-  return await axiosAuth.post("/auth/verify-email", data);
+export const verifyEmail = async (token) => {
+  return await axiosAuth.post("/auth/verify-email", { token });
 }
 
 export const resendVerification = async (data) => {
@@ -23,6 +23,10 @@ export const resendVerification = async (data) => {
 export const forgotPassword = async (data) => {
   return await axiosAuth.post("/auth/forgot-password", data);
 }
-export const resetPassword = async (data) => {
-  return await axiosAuth.post("/auth/reset-password", data);
+export const resetPassword = async (token, newPassword) => {
+  return await axiosAuth.post("/auth/reset-password", { token, newPassword });
 } 
+
+export const refreshToken = async (refreshToken) => {
+  return await axiosAuth.post("/auth/refresh", { refreshToken });
+}

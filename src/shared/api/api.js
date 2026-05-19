@@ -39,9 +39,10 @@ function processQueue(error, token = null) {
   failedQueue = [];
 }
 
-// El handler intercepta 401 (TokenExpired) y 403 con code TOKEN_EXPIRED, encola
-// peticiones concurrentes mientras se refresca, y reintenta con el cliente axios
-// que originó el fallo.
+/**
+ * Intercepts 401/403 TOKEN_EXPIRED errors to attempt token refresh.
+ * Queues concurrent requests during refresh to prevent multiple refresh calls.
+ */
 async function handleRefreshToken(error) {
   const original = error.config;
   if (!original || original._retry) {

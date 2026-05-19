@@ -7,6 +7,8 @@ export const SLIDES_DATA = [
     desc2: "Incluye al Mayor Paws, el capitán más esponjoso de la Vía Láctea.",
     bubbleTitle: "GALAXY BITE",
     bubbleSubtitle: "銀河バイト",
+    portalColor: "#E8423A",
+    borderColor: "#8E1B15",
   },
   {
     title: "PIZZA\nTAN BUENA,\nQUE LA GRAVEDAD\nPUEDE ESPERAR",
@@ -14,6 +16,8 @@ export const SLIDES_DATA = [
     desc2: "Servido con Koalantis, el koala más relajado de la galaxia.",
     bubbleTitle: "PIZZANAUT SET",
     bubbleSubtitle: "ピッツァノートセット",
+    portalColor: "#4FC3F7",
+    borderColor: "#0B72A4",
   },
   {
     title: "EL PERRITO\nQUE CRUZÓ\nEL HORIZONTE\nDE EVENTOS",
@@ -21,12 +25,14 @@ export const SLIDES_DATA = [
     desc2: "Salsa cosechada de los anillos de Saturno. Vale la pena el viaje.",
     bubbleTitle: "HOTDOG ODYSSEY",
     bubbleSubtitle: "ホットドッグオデッセイ",
+    portalColor: "#7B4FD4",
+    borderColor: "#4E269B",
   },
 ];
 
 const AUTO_SWITCH_MS = 5000;
 
-export const useHeroSlider = () => {
+export const useHeroSlider = (paused = false) => {
   const [current, setCurrent] = useState(0);
   const [progress, setProgress] = useState(0);
 
@@ -36,6 +42,10 @@ export const useHeroSlider = () => {
   }, []);
 
   useEffect(() => {
+    if (paused) {
+      setProgress(0);
+      return;
+    }
     setProgress(0);
     const startTime = Date.now();
 
@@ -52,7 +62,7 @@ export const useHeroSlider = () => {
     }, 50);
 
     return () => clearInterval(interval);
-  }, [current]);
+  }, [current, paused]);
 
   return {
     current,

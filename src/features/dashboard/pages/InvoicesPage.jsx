@@ -78,7 +78,7 @@ export const InvoicesPage = () => {
               <div className="text-right shrink-0">
                 <div className="text-xs text-on-base-muted">Total</div>
                 <div className="text-on-base font-bangers text-xl">
-                  ${(Number(inv.total) || 0).toFixed(2)}
+                  Q{(Number(inv.total) || 0).toFixed(2)}
                 </div>
               </div>
             </article>

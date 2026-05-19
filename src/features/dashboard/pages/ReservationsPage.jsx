@@ -29,13 +29,23 @@ export const ReservationsPage = () => {
 
   useEffect(() => {
     if (selectedRestaurant) {
+      console.log('Fetching tables for restaurant:', selectedRestaurant);
+      setSelectedTable('');
       tablesApi.getByRestaurant(selectedRestaurant).then(res => {
-        if (res.success) setTables(res.tables || []);
+        console.log('API Response for tables:', res);
+        if (res?.success && Array.isArray(res.data)) {
+          setTables(res.data);
+        } else if (Array.isArray(res)) {
+          setTables(res);
+        } else {
+          setTables([]);
+        }
+      }).catch(err => {
+        console.error('Error in useEffect tables:', err);
+        setTables([]);
       });
     } else {
-      // Use a timeout to avoid synchronous setState in effect warning
-      const timer = setTimeout(() => setTables([]), 0);
-      return () => clearTimeout(timer);
+      setTables([]);
     }
   }, [selectedRestaurant]);
 
@@ -58,6 +68,7 @@ export const ReservationsPage = () => {
       toast.success('Reserva creada con éxito');
       setIsModalOpen(false);
       resetForm();
+      fetchMyReservations(); // Refresh list
     } else {
       toast.error(res.message || 'Error al crear reserva');
     }
@@ -127,7 +138,7 @@ export const ReservationsPage = () => {
                     {res.restaurant?.name || 'Restaurante'}
                   </h3>
                   <p className="text-xs text-on-base-muted uppercase tracking-widest">
-                    Mesa #{res.table?.number || res.tableId?.number || '?'}
+                    Mesa #{res.table?.tableNumber || res.tableId?.tableNumber || '?'}
                   </p>
                 </div>
                 <div className="bg-surface-3 p-2 rounded-xl border-2 border-stroke-soft">
@@ -138,11 +149,11 @@ export const ReservationsPage = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-on-base">
                   <CalendarIcon size={14} className="text-primary" />
-                  {format(new Date(res.date), 'PPPP', { locale: es })}
+                  {format(new Date(res.date || res.reservationDate), 'PPPP', { locale: es })}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-on-base">
                   <Clock size={14} className="text-primary" />
-                  {res.time} hs
+                  {res.time || format(new Date(res.reservationDate), 'HH:mm')} hs
                 </div>
                 <div className="flex items-center gap-2 text-sm text-on-base">
                   <Users size={14} className="text-primary" />
@@ -216,12 +227,12 @@ export const ReservationsPage = () => {
                     value={selectedTable}
                     onChange={(e) => setSelectedTable(e.target.value)}
                     required
-                    disabled={!selectedRestaurant}
+                    disabled={!selectedRestaurant || tables.length === 0}
                     className="w-full bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3 font-semibold text-on-base focus:outline-none focus:border-primary disabled:opacity-50"
                   >
-                    <option value="">Seleccionar...</option>
+                    <option value="">{tables.length === 0 ? 'No hay mesas disponibles' : 'Seleccionar...'}</option>
                     {tables.map(t => (
-                      <option key={t._id || t.id} value={t._id || t.id}>Mesa #{t.number} - Cap: {t.capacity}</option>
+                      <option key={t._id || t.id} value={t._id || t.id}>Mesa #{t.tableNumber} - Cap: {t.capacity} pers.</option>
                     ))}
                   </select>
                 </div>

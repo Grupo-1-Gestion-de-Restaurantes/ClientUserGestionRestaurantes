@@ -8,7 +8,6 @@ export const ResetPasswordPage = () => {
   const { token: tokenParam } = useParams();
   const [search] = useSearchParams();
   const token = tokenParam || search.get('token') || '';
-  const email = search.get('email') || '';
 
   const navigate = useNavigate();
   const resetPassword = useAuthStore((s) => s.resetPassword);
@@ -26,11 +25,11 @@ export const ResetPasswordPage = () => {
   }, []);
 
   const onSubmit = async (data) => {
-    if (!email || !token) {
+    if (!token) {
       showError('El enlace de restablecimiento es inválido.');
       return;
     }
-    const res = await resetPassword(email, token, data.password);
+    const res = await resetPassword(token, data.password);
     if (res.success) {
       showSuccess('Contraseña actualizada');
       navigate('/auth');

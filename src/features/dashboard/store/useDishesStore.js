@@ -9,13 +9,13 @@ function extractList(data) {
   return [];
 }
 
-/** Deriva categorías a partir de platos; función pura para usar con useMemo. */
+/** Deriva categorías a partir de platos usando dishType; función pura para usar con useMemo. */
 export function buildCategoriesFromDishes(dishes) {
   const map = new Map();
   dishes.forEach((d) => {
-    const key = (d.category || 'Sin categoría').toString();
+    const key = (d.dishType || 'OTRO').toString();
     if (!map.has(key)) {
-      map.set(key, { id: key, name: key, photo: d.photo, count: 1 });
+      map.set(key, { id: key, name: key.replace(/_/g, ' '), photo: d.photo, count: 1 });
     } else {
       const prev = map.get(key);
       prev.count += 1;

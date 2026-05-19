@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as restaurantsApi from '../../../shared/api/restaurants';
+import { useOrderStore } from './useOrderStore';
 
 function extractList(data) {
   if (!data) return [];
@@ -21,21 +22,30 @@ export const useRestaurantsStore = create((set) => ({
       set({ loading: true, error: null });
       const { data } = await restaurantsApi.getRestaurants(params);
       const list = extractList(data);
-      set((prev) => ({
-        restaurants: list,
-        pagination: data?.pagination || null,
-        loading: false,
-        selectedRestaurantId:
-          prev.selectedRestaurantId ||
-          list[0]?._id ||
-          list[0]?.id ||
-          null,
-      }));
+      set((prev) => {
+          return {
+            restaurants: list,
+            pagination: data?.pagination || null,
+            loading: false,
+          };
+      });
     } catch (err) {
       const message = err.response?.data?.message || 'Error cargando restaurantes';
       set({ error: message, loading: false });
     }
   },
 
-  setSelectedRestaurant: (id) => set({ selectedRestaurantId: id }),
+  setSelectedRestaurant: (id) => set((prev) => {
+     if (prev.selectedRestaurantId !== id) {
+         useOrderStore.getState().clearCart();
+     }
+     return { selectedRestaurantId: id };
+  }),
+
+  clearSelectedRestaurant: () => set((prev) => {
+    if (prev.selectedRestaurantId !== null) {
+      useOrderStore.getState().clearCart();
+    }
+    return { selectedRestaurantId: null };
+  }),
 }));

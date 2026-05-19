@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as ordersApi from '../../../shared/api/orders';
+import { useClientStore } from './useClientStore';
 
 function round2(n) {
   return Math.round(n * 100) / 100;
@@ -9,20 +10,32 @@ function calcSubtotal(items) {
   return round2(items.reduce((sum, it) => sum + it.price * it.qty, 0));
 }
 
-function calcDiscount(subtotal, code) {
-  const normalized = String(code || '').trim().toUpperCase();
-  if (!normalized) return 0;
-  if (normalized === 'TRYNEW') return round2(subtotal * 0.1);
-  if (normalized === 'EXPRESS5') return Math.min(5, subtotal);
-  return 0;
+function calcDiscount(subtotal, promo, cartItems) {
+  if (!promo) return 0;
+  
+  // Si la promoción aplica a platos específicos
+  if (promo.dishesApplicables && promo.dishesApplicables.length > 0) {
+    let discount = 0;
+    cartItems.forEach(item => {
+      const isApplicable = promo.dishesApplicables.some(id => String(id) === String(item.dishId));
+      if (isApplicable) {
+        discount += (item.price * item.qty) * (promo.discountPercentage / 100);
+      }
+    });
+    return round2(discount);
+  }
+  
+  // Si es una promoción general
+  return round2(subtotal * (promo.discountPercentage / 100));
 }
 
 export const useOrderStore = create((set, get) => ({
-  orderType: 'delivery',
+  orderType: 'DOMICILIO',
   address: '',
   addressId: null,
   promoCode: '',
   promotionId: null,
+  activePromotion: null, // Guardamos el objeto completo de la promo
   paymentMethod: 'TARJETA',
   cartItems: [],
   history: [],
@@ -34,6 +47,7 @@ export const useOrderStore = create((set, get) => ({
   setAddressId: (addressId) => set({ addressId }),
   setPromoCode: (promoCode) => set({ promoCode }),
   setPromotionId: (promotionId) => set({ promotionId }),
+  setActivePromotion: (activePromotion) => set({ activePromotion }),
   setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
 
   addItem: (dish) => {
@@ -85,13 +99,13 @@ export const useOrderStore = create((set, get) => ({
     set({ cartItems: cartItems.filter((x) => x.dishId !== dishId) });
   },
 
-  clearCart: () => set({ cartItems: [], promoCode: '', promotionId: null }),
+  clearCart: () => set({ cartItems: [], promoCode: '', promotionId: null, activePromotion: null }),
 
   getTotals: () => {
-    const { cartItems, promoCode, orderType } = get();
+    const { cartItems, activePromotion, orderType } = get();
     const subtotal = calcSubtotal(cartItems);
-    const discount = calcDiscount(subtotal, promoCode);
-    const deliveryCharge = orderType === 'delivery' && subtotal > 0 ? 10 : 0;
+    const discount = calcDiscount(subtotal, activePromotion, cartItems);
+    const deliveryCharge = orderType === 'DOMICILIO' && subtotal > 0 ? 10 : 0;
     const total = round2(Math.max(0, subtotal - discount + deliveryCharge));
     return { subtotal, discount, deliveryCharge, total };
   },
@@ -108,12 +122,30 @@ export const useOrderStore = create((set, get) => ({
       return { success: false, error: 'Elige un método de pago.' };
     }
 
+    let finalAddress = undefined;
+    if (state.orderType === 'DOMICILIO') {
+        const clientInfo = useClientStore.getState().info;
+        const addresses = clientInfo?.addresses || [];
+        const selectedAddressObj = addresses.find((a) => (a._id || a.id) === state.addressId) || addresses.find((a) => a.isDefault) || addresses[0];
+        
+        if (selectedAddressObj) {
+            finalAddress = {
+                alias: selectedAddressObj.alias,
+                addressLine: selectedAddressObj.addressLine,
+                houseNumber: selectedAddressObj.houseNumber,
+                securityInfo: selectedAddressObj.securityInfo,
+                reference: selectedAddressObj.reference
+            };
+        }
+    }
+
     const payload = {
       restaurantId,
       items: state.cartItems.map((x) => ({ dishId: x.dishId, quantity: x.qty })),
       paymentMethod: state.paymentMethod,
+      deliveryType: state.orderType
     };
-    if (state.addressId) payload.addressId = state.addressId;
+    if (finalAddress) payload.deliveryAddress = finalAddress;
     if (state.promotionId) payload.promotion = state.promotionId;
 
     try {
@@ -125,7 +157,7 @@ export const useOrderStore = create((set, get) => ({
         invoiceNumber: data?.invoice?.invoiceNumber,
         createdAt: new Date().toISOString(),
         orderType: state.orderType,
-        address: state.address,
+        address: finalAddress?.addressLine || 'Recoger en tienda',
         promoCode: state.promoCode,
         items: state.cartItems.map((x) => ({ ...x })),
         ...totals,
@@ -136,6 +168,7 @@ export const useOrderStore = create((set, get) => ({
         cartItems: [],
         promoCode: '',
         promotionId: null,
+        activePromotion: null,
         submitting: false,
       }));
       return { success: true, data, order: localOrder };

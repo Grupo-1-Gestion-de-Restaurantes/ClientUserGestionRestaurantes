@@ -1,11 +1,9 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_GESTION_URL;
+import { axiosGestion } from './api';
 
 export const eventsApi = {
   getAll: async (params = {}) => {
     try {
-      const response = await axios.get(`${API_URL}/events`, { params });
+      const response = await axiosGestion.get('/events', { params });
       return response.data;
     } catch (error) {
       return error.response?.data || { success: false, message: 'Error al obtener eventos' };
@@ -14,18 +12,16 @@ export const eventsApi = {
 
   getById: async (id) => {
     try {
-      const response = await axios.get(`${API_URL}/events/${id}`);
+      const response = await axiosGestion.get(`/events/${id}`);
       return response.data;
     } catch (error) {
       return error.response?.data || { success: false, message: 'Error al obtener detalle del evento' };
     }
   },
 
-  subscribe: async (id, token) => {
+  subscribe: async (id) => {
     try {
-      const response = await axios.patch(`${API_URL}/events/${id}/subscribe`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axiosGestion.patch(`/events/${id}/subscribe`, {});
       return response.data;
     } catch (error) {
       return error.response?.data || { success: false, message: 'Error al suscribirse al evento' };

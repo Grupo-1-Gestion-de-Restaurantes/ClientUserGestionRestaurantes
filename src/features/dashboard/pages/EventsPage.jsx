@@ -49,29 +49,19 @@ export const EventsPage = () => {
               key={event._id || event.id} 
               className="bg-surface-2 border-[3px] border-stroke-strong rounded-3xl overflow-hidden shadow-brutal-sm hover:shadow-brutal transition-all flex flex-col group"
             >
-              {/* Image/Header */}
-              <div className="h-48 relative overflow-hidden bg-surface-3">
-                {event.photo ? (
-                  <img 
-                    src={event.photo} 
-                    alt={event.title} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
-                    <Ticket size={48} className="text-on-base-faint" />
-                  </div>
-                )}
-                <div className="absolute top-4 right-4 bg-secondary text-on-secondary px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                  {event.type}
-                </div>
+              {/* Header with Type */}
+              <div className="px-6 pt-6 flex justify-between items-center">
+                <span className="bg-secondary text-on-secondary px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                  {event.typeEvent?.replace('_', ' ')}
+                </span>
+                <Ticket size={24} className="text-on-base-faint" />
               </div>
 
               {/* Content */}
               <div className="p-6 flex-1 flex flex-col gap-4">
                 <div className="flex justify-between items-start gap-4">
                   <h3 className="font-bangers text-3xl text-on-base tracking-wide leading-none">
-                    {event.title}
+                    {event.name}
                   </h3>
                 </div>
                 
@@ -82,7 +72,7 @@ export const EventsPage = () => {
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-on-base">
                     <Calendar size={14} className="text-primary" />
-                    {format(new Date(event.date), 'dd MMM, yyyy', { locale: es })}
+                    {event.dateTime ? format(new Date(event.dateTime), 'dd MMM, yyyy', { locale: es }) : '—'}
                   </div>
                   <div className="flex items-center gap-2 text-xs font-bold text-on-base">
                     <MapPin size={14} className="text-primary" />
@@ -94,9 +84,8 @@ export const EventsPage = () => {
                   </div>
                   <div className="flex items-center gap-2 text-xs font-bold text-on-base">
                     <Ticket size={14} className="text-primary" />
-                    ${event.price?.toFixed(2) || '0.00'}
-                  </div>
-                </div>
+                    Q{event.price?.toFixed(2) || '0.00'}
+                    </div>                </div>
 
                 <div className="mt-auto pt-6 flex items-center gap-4">
                   <button

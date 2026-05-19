@@ -29,7 +29,7 @@ export const HowItWorks = () => {
         scrollTrigger: {
           trigger: containerRef.current,
           start: "top top",
-          end: "+=4000", 
+          end: "+=6000", 
           scrub: 0.5,
           pin: true,
           onUpdate: (self) => {
@@ -46,7 +46,7 @@ export const HowItWorks = () => {
     <section
       id="how"
       ref={containerRef}
-      className="w-full h-screen bg-transparent relative overflow-hidden"
+      className="w-full h-screen bg-transparent relative overflow-hidden mb-[30vh]"
     >
       {/* ── Radial red glow behind 3D (énfasis sin saturar) ── */}
       <div className="absolute inset-0 bg-radial-primary mask-radial-fade pointer-events-none z-0" aria-hidden />
@@ -57,9 +57,12 @@ export const HowItWorks = () => {
         <Canvas
           gl={{ antialias: true, alpha: true }}
           camera={{ near: 0.1, far: 100000 }}
+          onCreated={({ gl }) => {
+            gl.setClearColor(0x000000, 0);
+          }}
+          shadows
         >
           <Suspense fallback={null}>
-            <Environment preset="studio" />
             <ScrollScene />
           </Suspense>
         </Canvas>
