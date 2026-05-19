@@ -15,7 +15,7 @@ export const useReservationsStore = create((set, get) => ({
     const res = await reservationsApi.getMyReservations(token);
     
     if (res.success) {
-      set({ reservations: res.reservations || [], loading: false });
+      set({ reservations: res.data || res.reservations || [], loading: false });
     } else {
       set({ error: res.message, loading: false });
     }
