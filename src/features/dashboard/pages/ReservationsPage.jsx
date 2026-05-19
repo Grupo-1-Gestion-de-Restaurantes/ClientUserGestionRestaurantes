@@ -59,7 +59,7 @@ export const ReservationsPage = () => {
     const res = await createReservation({
       restaurantId: selectedRestaurant,
       tableId: selectedTable,
-      date: format(selectedDate, 'yyyy-MM-dd'),
+      reservationDate: format(selectedDate, 'yyyy-MM-dd'),
       time,
       numberOfPeople: people
     });
