@@ -1,0 +1,313 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bangers&display=swap');
+
+/* ─── Design Tokens ─── */
+@theme {
+  /* Brand Colors (Dashboard) */
+  --color-brand-dark: #161925;
+  --color-brand-dark-80: #2e3347;
+  --color-brand-dark-60: #464d69;
+  --color-brand-dark-40: #7d8399;
+  --color-brand-dark-20: #c5c8d4;
+  --color-brand-dark-10: #e8e9ee;
+
+  --color-brand-red: #C1292E;
+  --color-brand-red-dark: #991f23;
+  --color-brand-red-light: #e05559;
+  --color-brand-red-soft: #f5d0d1;
+
+  --color-brand-yellow: #F1D302;
+  --color-brand-yellow-dark: #c4ac00;
+  --color-brand-yellow-light: #f6de3e;
+  --color-brand-yellow-soft: #fdf6c0;
+
+  /* ─── Strict Palette (Semantic Aliases) ─── */
+  --color-background-base: #111317;
+  --color-primary: #C1292E;
+  --color-secondary: #F1D302;
+  --color-background-elevated: #1a1d24;
+  --color-background-card: #16181f;
+  --color-text-primary: #f0f0f2;
+  --color-text-secondary: #9ca3af;
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+
+  /* Surfaces (dark dominant scale) */
+  --color-surface-1: #111317;
+  --color-surface-2: #181b21;
+  --color-surface-3: #20242c;
+  --color-surface-4: #2a2f38;
+
+  /* Primary / Secondary tints */
+  --color-primary-soft: rgba(193, 41, 46, 0.12);
+  --color-primary-glow: rgba(193, 41, 46, 0.45);
+  --color-secondary-soft: rgba(241, 211, 2, 0.14);
+  --color-secondary-glow: rgba(241, 211, 2, 0.40);
+
+  /* Strokes */
+  --color-stroke-strong: #000000;
+  --color-stroke-soft: rgba(255, 255, 255, 0.08);
+  --color-stroke-yellow: #F1D302;
+  --color-stroke-red: #C1292E;
+
+  /* On-color text */
+  --color-on-primary: #FFFFFF;
+  --color-on-secondary: #111317;
+  --color-on-base: #F5F5F7;
+  --color-on-base-muted: rgba(245, 245, 247, 0.65);
+  --color-on-base-faint: rgba(245, 245, 247, 0.40);
+}
+
+/* ─── Smooth Scroll ─── */
+html, body, #root  {
+  scroll-behavior: smooth;
+  cursor: url("/home/cursor.svg") 0 0, auto;
+}
+
+a, 
+button, 
+input[type="button"], 
+input[type="submit"], 
+[role="button"],
+.pointer-cursor {
+  cursor: url('/home/pointer.svg') 0 0, pointer !important;
+}
+
+/* ─── Landing Animations ─── */
+@keyframes float-star {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(10deg); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes vibrate {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-float {
+  animation: float-star 4s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float-star 5s ease-in-out 1s infinite;
+}
+
+.animate-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+.animate-vibrate {
+  animation: vibrate 0.3s linear infinite;
+}
+
+/* ─── Text Stroke (Neo-Brutalist) ─── */
+.text-stroke {
+  -webkit-text-stroke: 3px black;
+  paint-order: stroke fill;
+}
+
+.text-stroke-sm {
+  -webkit-text-stroke: 2px black;
+  paint-order: stroke fill;
+}
+
+/* ─── Neo-Brutalist Shadow ─── */
+.shadow-brutal {
+  box-shadow: 4px 4px 0px black;
+}
+
+.shadow-brutal-sm {
+  box-shadow: 3px 3px 0px black;
+}
+
+/* ─── Bangers Font Family ─── */
+.font-bangers {
+  font-family: 'Bangers', cursive;
+}
+
+/* ─── Masks (radial & directional fades) ─── */
+.mask-radial-fade {
+  -webkit-mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
+          mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
+}
+.mask-bottom-fade {
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+          mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+}
+.mask-top-fade {
+  -webkit-mask-image: linear-gradient(to top, black 70%, transparent 100%);
+          mask-image: linear-gradient(to top, black 70%, transparent 100%);
+}
+
+/* ─── Decorative backgrounds ─── */
+.bg-grid-faint {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.bg-grid-red {
+  background-image:
+    linear-gradient(rgba(193,41,46,0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(193,41,46,0.10) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+.bg-radial-primary {
+  background-image: radial-gradient(ellipse at center, rgba(193,41,46,0.55) 0%, rgba(193,41,46,0) 70%);
+}
+.bg-radial-secondary {
+  background-image: radial-gradient(ellipse at center, rgba(241,211,2,0.40) 0%, rgba(241,211,2,0) 70%);
+}
+
+@layer utilities {
+  .bg-checkerboard {
+    background-image: conic-gradient(
+      rgba(0, 0, 0, 0.2) 25%,
+      transparent 25% 50%,
+      rgba(0, 0, 0, 0.2) 50% 75%,
+      transparent 75%
+    );
+    background-size: 40px 40px;
+  }
+}
+
+/* ─── Glow shadows ─── */
+.glow-primary {
+  box-shadow: 0 0 80px -10px rgba(193, 41, 46, 0.55);
+}
+.glow-secondary {
+  box-shadow: 0 0 60px -10px rgba(241, 211, 2, 0.45);
+}
+.glow-primary-sm {
+  box-shadow: 0 0 30px -6px rgba(193, 41, 46, 0.45);
+}
+.glow-secondary-sm {
+  box-shadow: 0 0 26px -6px rgba(241, 211, 2, 0.40);
+}
+
+/* ─── Diagonal divider (clip-path) ─── */
+.clip-diagonal-top {
+  clip-path: polygon(0 16px, 100% 0, 100% 100%, 0 100%);
+}
+.clip-diagonal-bottom {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), 0 100%);
+}
+
+/* ─── Fade-in-up keyframe (used by tooltips, success states) ─── */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.35s ease-out both;
+}
+
+/* ─── Custom Scrollbar ─── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(241, 211, 2, 0.3); /* secondary color tint */
+}
+
+/* ─── Joyride Fixes ─── */
+.joyride-beacon, 
+[class*="joyride-beacon"],
+.react-joyride__beacon {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ─── Reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-delay,
+  .animate-twinkle,
+  .animate-spin-slow,
+  .animate-fade-in-up {
+    animation: none !important;
+  }
+}
+
+/* ─── Driver.js Custom Theme ─── */
+.driver-popover {
+  background-color: var(--color-surface-2) !important;
+  color: var(--color-text-primary) !important;
+  border: 3px solid var(--color-stroke-strong) !important;
+  border-radius: 1.5rem !important;
+  box-shadow: 4px 4px 0px var(--color-stroke-strong) !important;
+  font-family: 'Inter', sans-serif !important;
+  padding: 1.5rem !important;
+}
+.driver-popover-title {
+  font-family: 'Bangers', cursive !important;
+  font-size: 1.5rem !important;
+  letter-spacing: 0.05em !important;
+  color: var(--color-primary) !important;
+  margin-bottom: 0.5rem !important;
+}
+.driver-popover-description {
+  color: var(--color-text-secondary) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+}
+.driver-popover-footer button {
+  background-color: var(--color-surface-3) !important;
+  color: var(--color-text-primary) !important;
+  border: 2px solid var(--color-stroke-strong) !important;
+  border-radius: 0.75rem !important;
+  font-family: 'Bangers', cursive !important;
+  letter-spacing: 0.05em !important;
+  padding: 0.5rem 1rem !important;
+  text-shadow: none !important;
+  box-shadow: 2px 2px 0px var(--color-stroke-strong) !important;
+  transition: all 0.2s !important;
+}
+.driver-popover-footer button:hover {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+.driver-popover-footer .driver-popover-next-btn {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-stroke-strong) !important;
+}
+.driver-popover-footer .driver-popover-close-btn {
+  color: var(--color-error) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+.driver-popover-footer .driver-popover-close-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+.driver-popover-arrow {
+  display: none !important;
+}
