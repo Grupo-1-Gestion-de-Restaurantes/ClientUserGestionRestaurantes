@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
-import { Calendar, MapPin, Users, Ticket, Bell } from 'lucide-react';
+import { Calendar, MapPin, Users, Ticket, Bell, Check } from 'lucide-react';
 import { useEventsStore } from '../store/useEventsStore';
+import { useAuthStore } from '../../auth/store/useAuthStore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 
 export const EventsPage = () => {
   const { events, loading, fetchEvents, subscribeToEvent } = useEventsStore();
+  const userId = useAuthStore((s) => s.user?._id || s.user?.id);
 
   useEffect(() => {
     fetchEvents();
@@ -19,6 +21,19 @@ export const EventsPage = () => {
     } else {
       toast.error(res.message || 'Error al suscribirse');
     }
+  };
+
+  const isUserSubscribed = (event) => {
+    if (!userId || !event.attendees) return false;
+    return event.attendees.some(attendeeId => String(attendeeId) === String(userId));
+  };
+
+  const isFull = (event) => event.capacity <= (event.attendees?.length || 0);
+
+  const getButtonState = (event) => {
+    if (isUserSubscribed(event)) return { text: 'SUSCRITO', disabled: true, subscribed: true };
+    if (isFull(event)) return { text: 'AGOTADO', disabled: true, subscribed: false };
+    return { text: 'SUSCRIBIRME', disabled: false, subscribed: false };
   };
 
   return (
@@ -88,13 +103,25 @@ export const EventsPage = () => {
                     </div>                </div>
 
                 <div className="mt-auto pt-6 flex items-center gap-4">
-                  <button
-                    onClick={() => handleSubscribe(event._id || event.id)}
-                    disabled={event.capacity <= (event.attendees?.length || 0)}
-                    className="flex-1 bg-primary text-on-primary px-6 py-3 rounded-2xl border-[3px] border-stroke-strong shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] disabled:opacity-50 disabled:grayscale transition-all font-bangers tracking-widest text-lg"
-                  >
-                    {event.capacity <= (event.attendees?.length || 0) ? 'AGOTADO' : 'SUSCRIBIRME'}
-                  </button>
+                  {(() => {
+                    const btn = getButtonState(event);
+                    return (
+                      <button
+                        onClick={() => !btn.disabled && handleSubscribe(event._id || event.id)}
+                        disabled={btn.disabled}
+                        className={`flex-1 px-6 py-3 rounded-2xl border-[3px] border-stroke-strong shadow-brutal-sm transition-all font-bangers tracking-widest text-lg flex items-center justify-center gap-2 ${
+                          btn.subscribed
+                            ? 'bg-secondary text-on-secondary cursor-default'
+                            : btn.disabled
+                            ? 'bg-surface-3 text-on-base-muted opacity-50 cursor-not-allowed'
+                            : 'bg-primary text-on-primary hover:translate-x-[2px] hover:translate-y-[2px]'
+                        }`}
+                      >
+                        {btn.subscribed && <Check size={18} strokeWidth={3} />}
+                        {btn.text}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Hash, LogOut, Mail, MapPin, Phone, Plus, User } from 'lucide-react';
+import { Calendar, Hash, LogOut, Mail, MapPin, Phone, Plus, User } from 'lucide-react';
 import { useAuthStore } from '../../auth/store/useAuthStore';
 import { useClientStore } from '../store/useClientStore';
 import { showError, showSuccess } from '../../../shared/utils/toast';
@@ -55,10 +55,18 @@ export const ProfilePage = () => {
 
   useEffect(() => {
     if (info) {
-
+      let formattedDate = "";
+      if (info.birthdate) {
+        const dateObj = new Date(info.birthdate);
+        if (!isNaN(dateObj.getTime())) {
+          formattedDate = dateObj.toISOString().split("T")[0];
+        }
+      }
       resetProfile({
         name: info.name || user?.name || '',
         phone: info.phone || '',
+        birthdate: formattedDate,
+        gender: info.gender || 'Masculino',
       });
     }
   }, [info, user, resetProfile]);
@@ -157,13 +165,36 @@ export const ProfilePage = () => {
                 disabled={loading}
                 {...regProfile('phone', { 
                   required: 'El teléfono es obligatorio',
-                  pattern: { value: /^[0-9]{8,15}$/, message: 'Teléfono inválido (8-15 dígitos)' }
+                  pattern: { value: /^[0-9]{0,15}$/, message: 'Teléfono inválido (0-15 dígitos)' }
                 })}
                 className="w-full bg-surface-3 text-on-base border-[3px] border-stroke-strong rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-secondary"
               />
               {errorsProfile.phone && (
                 <span className="text-primary text-xs font-bold">{errorsProfile.phone.message}</span>
               )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-secondary font-bangers tracking-widest uppercase">Fecha de Nacimiento</label>
+              <input
+                type="date"
+                disabled={loading}
+                {...regProfile('birthdate')}
+                className="w-full bg-surface-3 text-on-base border-[3px] border-stroke-strong rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-secondary"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-secondary font-bangers tracking-widest uppercase">Género</label>
+              <select
+                disabled={loading}
+                {...regProfile('gender')}
+                className="w-full bg-surface-3 text-on-base border-[3px] border-stroke-strong rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-secondary"
+              >
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Otro">Otro</option>
+              </select>
             </div>
 
             <button
@@ -179,6 +210,8 @@ export const ProfilePage = () => {
             <Row icon={User} label="Nombre" value={info?.name || user?.username || user?.name} />
             <Row icon={Mail} label="Email" value={info?.email || user?.email} />
             <Row icon={Phone} label="Teléfono" value={info?.phone} />
+            <Row icon={Hash} label="Género" value={info?.gender} />
+            <Row icon={Calendar} label="Fecha de Nacimiento" value={info?.birthdate ? new Date(info.birthdate).toLocaleDateString('es-ES') : null} />
           </div>
         )}
 

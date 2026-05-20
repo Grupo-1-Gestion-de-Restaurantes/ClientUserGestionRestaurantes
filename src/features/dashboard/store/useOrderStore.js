@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import * as ordersApi from '../../../shared/api/orders';
 import { useClientStore } from './useClientStore';
 
@@ -29,13 +30,15 @@ function calcDiscount(subtotal, promo, cartItems) {
   return round2(subtotal * (promo.discountPercentage / 100));
 }
 
-export const useOrderStore = create((set, get) => ({
+export const useOrderStore = create(
+  persist(
+    (set, get) => ({
   orderType: 'DOMICILIO',
   address: '',
   addressId: null,
   promoCode: '',
   promotionId: null,
-  activePromotion: null, // Guardamos el objeto completo de la promo
+  activePromotion: null,
   paymentMethod: 'TARJETA',
   cartItems: [],
   history: [],
@@ -178,4 +181,18 @@ export const useOrderStore = create((set, get) => ({
       return { success: false, error: message };
     }
   },
-}));
+}),
+    {
+      name: 'clientuser-order',
+      partialize: (state) => ({
+        cartItems: state.cartItems,
+        promoCode: state.promoCode,
+        promotionId: state.promotionId,
+        activePromotion: state.activePromotion,
+        orderType: state.orderType,
+        addressId: state.addressId,
+        paymentMethod: state.paymentMethod,
+      }),
+    }
+  )
+);

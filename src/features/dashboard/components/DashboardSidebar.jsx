@@ -16,13 +16,23 @@ import { DashboardHelpFab } from './DashboardHelpFab';
 import logo from '../../../assets/img/Express.png';
 
 const nav = [
-  { to: '/dashboard', label: 'Comenzar Pedido', icon: ShoppingBag, clearSelection: true },
-  { to: '/dashboard/promotions', label: 'Promos', icon: Tag },
-  { to: '/dashboard/reservations', label: 'Reservas', icon: Calendar },
-  { to: '/dashboard/events', label: 'Eventos', icon: Sparkles },
-  { to: '/dashboard/history', label: 'Historial', icon: History },
+  { to: '/dashboard', label: 'Comenzar Pedido', icon: ShoppingBag, clearSelection: true, tourId: 'restaurants' },
+  { to: '/dashboard/promotions', label: 'Promos', icon: Tag, tourId: 'promotions' },
+  { to: '/dashboard/reservations', label: 'Reservas', icon: Calendar, tourId: 'reservations' },
+  { to: '/dashboard/events', label: 'Eventos', icon: Sparkles, tourId: 'events' },
+  { to: '/dashboard/history', label: 'Historial', icon: History, tourId: 'history' },
   { to: '/dashboard/profile', label: 'Mi Perfil', icon: User },
 ];
+
+const getRoleLabel = (role) => {
+  switch (role) {
+    case 'CLIENT_ROLE': return 'Cliente';
+    case 'MANAGER_ROLE': return 'Manager';
+    case 'ADMIN_ROLE': return 'Admin';
+    case 'EMPLOYEE_ROLE': return 'Empleado';
+    default: return 'Cliente';
+  }
+};
 
 export const DashboardSidebar = ({ onNavigate, variant = 'sidebar' }) => {
   const isDrawer = variant === 'drawer';
@@ -81,6 +91,7 @@ export const DashboardSidebar = ({ onNavigate, variant = 'sidebar' }) => {
             to={item.to}
             end={item.to === '/dashboard'}
             onClick={() => handleNavClick(item)}
+            id={item.tourId ? `tour-${item.tourId}` : undefined}
             className={({ isActive }) =>
               `flex items-center gap-4 px-4 py-3 rounded-2xl transition-all border-[3px] ${
                 isActive
@@ -132,7 +143,7 @@ export const DashboardSidebar = ({ onNavigate, variant = 'sidebar' }) => {
               {name}
             </div>
             <div className="text-[10px] text-on-base-muted font-black uppercase tracking-widest">
-              Cliente
+              {getRoleLabel(user?.role)}
             </div>
           </div>
           <button

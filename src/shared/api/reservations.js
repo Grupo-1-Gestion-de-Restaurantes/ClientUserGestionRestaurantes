@@ -23,5 +23,16 @@ export const reservationsApi = {
     } catch (error) {
       return error.response?.data || { success: false, message: 'Error al obtener mis reservas' };
     }
+  },
+
+  getById: async (id, token) => {
+    try {
+      const response = await axios.get(`${API_URL}/reservations/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      return error.response?.data || { success: false, message: 'Error al obtener la reserva' };
+    }
   }
 };

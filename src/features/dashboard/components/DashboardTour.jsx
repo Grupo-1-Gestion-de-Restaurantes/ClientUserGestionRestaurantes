@@ -13,7 +13,6 @@ export const DashboardTour = () => {
     if (!userId) return;
 
     const tourKey = `clientuser:onboarding:${userId}`;
-    const wizardKey = `clientuser:orderWizardDone:${userId}`;
 
     const startTour = () => {
       const driverObj = driver({
@@ -28,7 +27,7 @@ export const DashboardTour = () => {
             element: '#tour-sidebar',
             popover: {
               title: 'Panel de Navegación',
-              description: 'Aquí puedes moverte entre las diferentes secciones: explorar restaurantes, ver tus pedidos anteriores, gestionar tu perfil o revisar tus eventos.',
+              description: 'Aquí puedes moverte entre las diferentes secciones: explorar restaurantes, ver tus pedidos, gestionar tu perfil, reservas y eventos.',
               side: "right",
               align: 'start'
             }
@@ -37,7 +36,7 @@ export const DashboardTour = () => {
             element: '#tour-restaurants',
             popover: {
               title: 'Explorar Sabores',
-              description: 'Aquí verás todos los restaurantes disponibles. Selecciona uno para ver su menú y promociones.',
+              description: 'Aquí verás todos los restaurantes disponibles. Selecciona uno para ver su menú y promociones activas.',
               side: "bottom",
               align: 'start'
             }
@@ -46,8 +45,35 @@ export const DashboardTour = () => {
             element: '#tour-cart',
             popover: {
               title: 'Tu Carrito',
-              description: 'Aquí se irán agregando los platos que selecciones. Podrás ver el total, aplicar promociones y finalizar tu pedido.',
+              description: 'Aquí se agregan los platos que selecciones. Primero agrega los platos que quieras, luego ve a Promociones para aplicar un cupón de descuento.',
               side: "left",
+              align: 'start'
+            }
+          },
+          {
+            element: '#tour-promotions',
+            popover: {
+              title: 'Cupones y Descuentos',
+              description: 'Primero haz tu pedido agregando platos al carrito, luego aquí puedes aplicar una promoción para obtener el descuento. Si la promoción aplica solo a ciertos platos, lo verás indicado.',
+              side: "bottom",
+              align: 'start'
+            }
+          },
+          {
+            element: '#tour-reservations',
+            popover: {
+              title: 'Mis Reservas',
+              description: 'Consulta y gestiona tus reservas de mesas. Puedes filtrar por estado: todas, confirmadas, pendientes o canceladas.',
+              side: "right",
+              align: 'start'
+            }
+          },
+          {
+            element: '#tour-events',
+            popover: {
+              title: 'Eventos Exclusivos',
+              description: 'Suscríbete a eventos especiales en tus restaurantes favoritos. Si ya estás suscrito, el botón cambiará a "SUSCRITO" y estará desactivado.',
+              side: "right",
               align: 'start'
             }
           },
@@ -61,9 +87,6 @@ export const DashboardTour = () => {
             }
           }
         ],
-        onDismisssed: () => {
-          localStorage.setItem(tourKey, 'done');
-        },
         onDestroyStarted: () => {
           localStorage.setItem(tourKey, 'done');
           driverObj.destroy();

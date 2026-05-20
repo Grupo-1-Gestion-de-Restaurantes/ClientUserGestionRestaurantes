@@ -36,14 +36,17 @@ export const OrderWizard = () => {
     const key = `clientuser:orderWizardDone:${userId}`;
     const hasRun = localStorage.getItem(key);
     
-    if (!hasRun || !isSetupComplete) {
+    // Siempre mostrar wizard si no hay direcciones O no hay addressId seleccionado
+    const needsSetup = !addresses.length || !addressId;
+    
+    if (!hasRun || needsSetup) {
       const timer = setTimeout(() => {
         setIsOpen(true);
         fetchMyInfo();
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [user, isSetupComplete, fetchMyInfo]);
+  }, [user, addresses, addressId, fetchMyInfo]);
 
   useEffect(() => {
     if (!isForcedOpen) return;

@@ -7,10 +7,17 @@ import {
   Ticket,
   Wallet,
   X,
+  Phone,
+  Edit3,
+  Check,
+  Trash2,
+  MapPin,
 } from 'lucide-react';
 import { useOrderStore } from '../store/useOrderStore';
 import { useRestaurantsStore } from '../store/useRestaurantsStore';
 import { useUIStore } from '../../../shared/store/useUIStore';
+import { useClientStore } from '../store/useClientStore';
+import toast from 'react-hot-toast';
 import { DishImage } from './DishImage';
 
 const ORDER_TYPES = [
@@ -24,7 +31,7 @@ const PAYMENT_METHODS = [
 ];
 
 const TicketNotch = () => (
-  <div className="relative my-4 flex-none">
+  <div className="relative my-3 flex-none">
     <div className="border-t-2 border-dashed border-stroke-soft" />
     <span className="absolute -top-2 -left-3 h-4 w-4 rounded-full bg-surface-1 border-[3px] border-stroke-strong" />
     <span className="absolute -top-2 -right-3 h-4 w-4 rounded-full bg-surface-1 border-[3px] border-stroke-strong" />
@@ -35,24 +42,37 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
   const setCartCollapsed = useUIStore((s) => s.setCartCollapsed);
 
   const orderType = useOrderStore((s) => s.orderType);
-  const address = useOrderStore((s) => s.address);
   const promoCode = useOrderStore((s) => s.promoCode);
   const promotionId = useOrderStore((s) => s.promotionId);
   const cartItems = useOrderStore((s) => s.cartItems);
   const paymentMethod = useOrderStore((s) => s.paymentMethod);
   const submitting = useOrderStore((s) => s.submitting);
   const setOrderType = useOrderStore((s) => s.setOrderType);
-  const setPromoCode = useOrderStore((s) => s.setPromoCode);
   const setPaymentMethod = useOrderStore((s) => s.setPaymentMethod);
   const incQty = useOrderStore((s) => s.incQty);
   const decQty = useOrderStore((s) => s.decQty);
-  const removeItem = useOrderStore((s) => s.removeItem);
   const getTotals = useOrderStore((s) => s.getTotals);
-
+  const clearCart = useOrderStore((s) => s.clearCart);
   const activePromotion = useOrderStore((s) => s.activePromotion);
 
   const selectedRestaurantId = useRestaurantsStore((s) => s.selectedRestaurantId);
   const restaurants = useRestaurantsStore((s) => s.restaurants);
+
+  const clientInfo = useClientStore((s) => s.info);
+  const updatePhone = useClientStore((s) => s.updatePhone);
+  const fetchMyInfo = useClientStore((s) => s.fetchMyInfo);
+
+  const addressId = useOrderStore((s) => s.addressId);
+  const setAddressId = useOrderStore((s) => s.setAddressId);
+  const openOrderWizard = useUIStore((s) => s.openOrderWizard);
+
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [phoneValue, setPhoneValue] = useState('');
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
+
+  const addresses = clientInfo?.addresses || (clientInfo?.address ? [clientInfo.address] : []);
+  const selectedAddress = addresses.find((a) => (a._id || a.id) === addressId) || addresses.find((a) => a.isDefault) || addresses[0];
 
   const selectedRestaurant = useMemo(
     () => restaurants.find((r) => (r._id || r.id) === selectedRestaurantId),
@@ -65,7 +85,37 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
   );
   const [localError, setLocalError] = useState(null);
 
-  const orderNumber = `#ORD-${String(Date.now()).slice(-6)}`;
+  const handleStartPhoneEdit = () => {
+    setPhoneValue(clientInfo?.phone || '');
+    setEditingPhone(true);
+  };
+
+  const handleSavePhone = async () => {
+    const trimmed = phoneValue.trim();
+    if (!trimmed) {
+      toast.error('Ingresa un número de teléfono válido');
+      return;
+    }
+    const result = await updatePhone(trimmed);
+    if (result.success) {
+      await fetchMyInfo();
+      setEditingPhone(false);
+      toast.success('Teléfono actualizado');
+    } else {
+      toast.error(result.error || 'No se pudo actualizar el teléfono');
+    }
+  };
+
+  const handleCancelPhoneEdit = () => {
+    setEditingPhone(false);
+    setPhoneValue('');
+  };
+
+  const handleClearCart = () => {
+    clearCart();
+    setShowClearConfirm(false);
+    toast.success('Carrito limpiado');
+  };
 
   const handleContinue = () => {
     if (!cartItems.length) {
@@ -74,6 +124,10 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
     }
     if (!selectedRestaurantId) {
       setLocalError('Selecciona un restaurante.');
+      return;
+    }
+    if (orderType === 'DOMICILIO' && !addressId) {
+      setLocalError('Agrega una dirección de entrega.');
       return;
     }
     if (!paymentMethod) {
@@ -87,24 +141,54 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
   };
 
   const disableContinue =
-    submitting || !cartItems.length || !selectedRestaurantId || !paymentMethod;
+    submitting || !cartItems.length || !selectedRestaurantId || !paymentMethod ||
+    (orderType === 'DOMICILIO' && !addressId);
 
   return (
-    <div id="tour-cart" className="relative h-full flex flex-col overflow-hidden">
-      <div className="relative flex-1 flex flex-col rounded-3xl bg-surface-2 border-[3px] border-stroke-strong p-5 shadow-brutal-sm overflow-hidden">
-        {/* Header Fijo */}
-        <div className="flex-none">
-          <div className="flex items-start justify-between gap-3 mb-4">
+    <div id="tour-cart" className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0 bg-surface-2 border-[3px] border-stroke-strong rounded-3xl shadow-brutal-sm overflow-hidden">
+        
+        {/* Header - fixed height */}
+        <div className="px-5 pt-5 pb-3 flex-none">
+          <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[10px] text-on-base-muted font-bangers tracking-widest uppercase">
-                Express ticket
+                Resumen
               </div>
-              <div className="font-bangers tracking-wider text-2xl text-on-base">
-                {orderNumber}
+              <div className="font-bangers tracking-wider text-xl text-on-base">
+                Tu pedido
               </div>
-              <div className="text-xs text-on-base-muted mt-1 truncate">
+              <div className="text-xs text-on-base-muted mt-0.5 truncate">
                 {selectedRestaurant?.name || 'Selecciona un restaurante'}
               </div>
+              {editingPhone ? (
+                <div className="flex items-center gap-1 mt-1">
+                  <input
+                    type="tel"
+                    value={phoneValue}
+                    onChange={(e) => setPhoneValue(e.target.value)}
+                    className="bg-surface-3 border-[2px] border-stroke-strong rounded-lg px-2 py-1 text-xs w-24"
+                    placeholder="Tel..."
+                    autoFocus
+                  />
+                  <button onClick={handleSavePhone} className="text-secondary">
+                    <Check size={12} />
+                  </button>
+                  <button onClick={handleCancelPhoneEdit} className="text-on-base-muted">
+                    <X size={12} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 mt-1">
+                  <Phone size={10} className="text-secondary" />
+                  <span className="text-[10px] text-on-base-muted">
+                    {clientInfo?.phone || 'Sin teléfono'}
+                  </span>
+                  <button onClick={handleStartPhoneEdit} className="text-on-base-muted hover:text-secondary transition-colors">
+                    <Edit3 size={10} />
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
@@ -112,30 +196,26 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
                 <button
                   type="button"
                   onClick={() => setCartCollapsed(true)}
-                  className="h-9 w-9 rounded-2xl bg-surface-3 border-[3px] border-stroke-strong flex items-center justify-center shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] transition-all"
+                  className="h-8 w-8 rounded-xl bg-surface-3 border-[2px] border-stroke-strong flex items-center justify-center"
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={14} />
                 </button>
               )}
               {mode === 'drawer' && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="h-9 w-9 rounded-2xl bg-surface-3 border-[3px] border-stroke-strong flex items-center justify-center"
-                >
-                  <X size={16} />
+                <button type="button" onClick={onClose} className="h-8 w-8 rounded-xl bg-surface-3 border-[2px] border-stroke-strong flex items-center justify-center">
+                  <X size={14} />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 rounded-2xl bg-surface-3 border-[3px] border-stroke-strong p-1">
+          <div className="flex items-center gap-2 rounded-xl bg-surface-3 border-[2px] border-stroke-strong p-0.5 mt-3">
             {ORDER_TYPES.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setOrderType(t.id)}
-                className={`flex-1 rounded-xl px-3 py-2 text-xs font-bangers tracking-widest uppercase transition-all ${
+                className={`flex-1 rounded-lg px-3 py-1.5 text-[10px] font-bangers tracking-widest uppercase transition-all ${
                   t.id === orderType
                     ? 'bg-primary text-on-primary shadow-brutal-sm'
                     : 'text-on-base-muted hover:text-on-base'
@@ -146,70 +226,109 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
             ))}
           </div>
 
-          <TicketNotch />
+          {orderType === 'DOMICILIO' && (
+            <div className="mt-3">
+              {addresses.length > 0 ? (
+                <div 
+                  className="flex items-center gap-2 bg-surface-3 border-[2px] border-stroke-strong rounded-xl px-3 py-2 cursor-pointer hover:border-secondary transition-colors"
+                  onClick={() => setShowAddressPicker(true)}
+                >
+                  <MapPin size={12} className="text-secondary shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-on-base font-semibold truncate">
+                      {selectedAddress ? `${selectedAddress.addressLine} ${selectedAddress.houseNumber}` : 'Selecciona dirección'}
+                    </div>
+                    {selectedAddress?.alias && (
+                      <div className="text-[10px] text-on-base-muted">{selectedAddress.alias}</div>
+                    )}
+                  </div>
+                  <Edit3 size={10} className="text-on-base-muted shrink-0" />
+                </div>
+              ) : (
+                <button
+                  onClick={openOrderWizard}
+                  className="w-full flex items-center justify-center gap-2 bg-surface-3 border-[2px] border-dashed border-stroke-strong rounded-xl px-3 py-2 text-[10px] font-bangers tracking-widest text-on-base-muted hover:text-primary hover:border-primary transition-colors"
+                >
+                  <MapPin size={12} />
+                  AGREGAR DIRECCIÓN
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* LISTA DE PLATILLOS - UNICA SECCION SCROLLEABLE */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-          <div className="text-[10px] text-on-base-muted font-bangers tracking-widest uppercase mb-2">
-            Tu pedido
+        <TicketNotch />
+
+        {/* Items List - flexible grow, scrollable */}
+        <div className="flex-1 overflow-y-auto px-5 min-h-0 custom-scrollbar">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] text-on-base-muted font-bangers tracking-widest uppercase">
+              Tu pedido
+            </div>
+            {cartItems.length > 0 && (
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                className="text-[10px] text-on-base-muted hover:text-error flex items-center gap-1"
+              >
+                <Trash2 size={10} />
+                <span>Limpiar</span>
+              </button>
+            )}
           </div>
           
-          <div className="space-y-3">
+          <div className="space-y-2 pb-3">
             {cartItems.length ? (
               cartItems.map((it) => (
                 <div
                   key={it.dishId}
-                  className="flex items-center gap-3 rounded-2xl bg-surface-3 border-[3px] border-stroke-strong px-3 py-2"
+                  className="flex items-center gap-2 rounded-xl bg-surface-3 border-[2px] border-stroke-strong px-3 py-2"
                 >
                   <DishImage
                     src={it.photo}
                     alt={it.name}
-                    className="h-10 w-10 rounded-xl border-[3px] border-stroke-strong shrink-0"
-                    iconSize={14}
+                    className="h-10 w-10 rounded-lg border-[2px] border-stroke-strong shrink-0"
+                    iconSize={12}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bangers tracking-wide text-on-base truncate">
+                    <div className="text-xs font-semibold text-on-base truncate">
                       {it.name}
                     </div>
                     <div className="text-[10px] text-on-base-muted">
                       Q{it.price.toFixed(2)}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0 scale-90">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={() => decQty(it.dishId)}
-                      className="h-7 w-7 rounded-lg bg-surface-2 border-2 border-stroke-strong flex items-center justify-center"
+                      className="h-6 w-6 rounded-md bg-surface-2 border-[2px] border-stroke-strong flex items-center justify-center"
                     >
-                      <Minus size={12} />
+                      <Minus size={10} />
                     </button>
-                    <div className="w-5 text-center text-xs font-black text-on-base">
+                    <div className="w-4 text-center text-xs font-bold text-on-base">
                       {it.qty}
                     </div>
                     <button
                       type="button"
                       onClick={() => incQty(it.dishId)}
-                      className="h-7 w-7 rounded-lg bg-surface-2 border-2 border-stroke-strong flex items-center justify-center"
+                      className="h-6 w-6 rounded-md bg-surface-2 border-[2px] border-stroke-strong flex items-center justify-center"
                     >
-                      <Plus size={12} />
+                      <Plus size={10} />
                     </button>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="rounded-2xl bg-surface-3 border-[3px] border-stroke-strong px-4 py-6 text-sm text-on-base-muted text-center italic">
+              <div className="rounded-xl bg-surface-3 border-[2px] border-stroke-strong px-4 py-4 text-xs text-on-base-muted text-center">
                 Carrito vacío
               </div>
             )}
           </div>
         </div>
 
-        {/* FOOTER FIJO */}
-        <div className="flex-none bg-surface-2">
-          <TicketNotch />
-          
-          <div className="space-y-1 text-xs font-semibold mb-4">
+        {/* Footer - fixed at bottom */}
+        <div className="flex-none px-5 pb-5">
+          <div className="space-y-1 text-xs mb-3">
             <div className="flex items-center justify-between text-on-base-muted">
               <span>Subtotal</span>
               <span>Q{totals.subtotal.toFixed(2)}</span>
@@ -226,48 +345,93 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
             </div>
           </div>
 
-          <div className="text-[10px] text-on-base-muted font-bangers tracking-widest uppercase mb-2">
-            Pago
-          </div>
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            {PAYMENT_METHODS.map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setPaymentMethod(id)}
-                className={`flex items-center justify-center gap-2 rounded-xl border-[3px] px-2 py-2 text-[10px] font-bangers tracking-widest uppercase transition-all ${
-                  paymentMethod === id
-                    ? 'bg-primary text-on-primary border-stroke-strong shadow-brutal-sm'
-                    : 'border-stroke-soft bg-surface-3 text-on-base-muted'
-                }`}
-              >
-                <Icon size={12} />
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between font-bangers tracking-wider text-on-base border-t-2 border-dashed border-stroke-soft pt-3 mb-4">
-            <span className="text-xl">Total</span>
-            <span className="text-2xl">Q{totals.total.toFixed(2)}</span>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-bangers tracking-wider text-on-base">Total</span>
+            <span className="text-lg font-bangers tracking-wider text-on-base">Q{totals.total.toFixed(2)}</span>
           </div>
 
           <button
             type="button"
             disabled={disableContinue}
             onClick={handleContinue}
-            className="w-full bg-secondary text-on-secondary font-bangers tracking-widest text-lg py-3 rounded-2xl border-[3px] border-stroke-strong shadow-brutal hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all disabled:opacity-50"
+            className="w-full bg-secondary text-on-secondary font-bangers tracking-widest text-base py-2.5 rounded-xl border-[2px] border-stroke-strong shadow-brutal-sm disabled:opacity-50"
           >
             {submitting ? '...' : 'CONFIRMAR'}
           </button>
           
           {localError && (
-            <div className="mt-2 text-[10px] text-error font-bold text-center animate-pulse">
+            <div className="mt-2 text-[10px] text-error font-bold text-center">
               {localError}
             </div>
           )}
         </div>
       </div>
+
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-surface-1/90 backdrop-blur-sm" onClick={() => setShowClearConfirm(false)} />
+          <div className="relative w-full max-w-xs bg-surface-2 border-[3px] border-stroke-strong rounded-2xl shadow-brutal p-5">
+            <h3 className="font-bangers text-xl text-on-base mb-1">¿Limpiar carrito?</h3>
+            <p className="text-xs text-on-base-muted mb-4">Esta acción no se puede deshacer.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 px-3 py-2 rounded-lg border-[2px] border-stroke-strong font-bangers text-[10px] tracking-widest text-on-base hover:bg-surface-3"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={handleClearCart}
+                className="flex-1 px-3 py-2 rounded-lg border-[2px] border-stroke-strong bg-primary text-on-primary font-bangers text-[10px] tracking-widest shadow-brutal-sm"
+              >
+                LIMPIAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddressPicker && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-surface-1/90 backdrop-blur-sm" onClick={() => setShowAddressPicker(false)} />
+          <div className="relative w-full max-w-xs bg-surface-2 border-[3px] border-stroke-strong rounded-2xl shadow-brutal p-5 max-h-[70vh] overflow-y-auto">
+            <h3 className="font-bangers text-xl text-on-base mb-3">Dirección</h3>
+            <div className="space-y-2">
+              {addresses.map((addr) => {
+                const id = addr._id || addr.id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => { setAddressId(id); setShowAddressPicker(false); }}
+                    className={`w-full text-left p-3 rounded-xl border-[2px] flex items-center justify-between ${
+                      addressId === id ? 'border-secondary bg-secondary/10' : 'border-stroke-soft bg-surface-3'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-semibold text-on-base">{addr.addressLine} {addr.houseNumber}</div>
+                      <div className="text-[10px] text-on-base-muted">{addr.alias || 'Dirección'}</div>
+                    </div>
+                    {addressId === id && <Check size={14} className="text-secondary" />}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => { setShowAddressPicker(false); openOrderWizard(); }}
+              className="mt-3 w-full flex items-center justify-center gap-2 bg-surface-3 border-[2px] border-stroke-strong rounded-xl px-3 py-2 text-[10px] font-bangers tracking-widest text-on-base-muted"
+            >
+              <MapPin size={12} />
+              AGREGAR NUEVA
+            </button>
+            <button
+              onClick={() => setShowAddressPicker(false)}
+              className="mt-2 w-full px-3 py-2 rounded-xl border-[2px] border-stroke-strong font-bangers text-[10px] tracking-widest text-on-base"
+            >
+              CERRAR
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

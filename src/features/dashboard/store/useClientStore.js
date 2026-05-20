@@ -42,4 +42,18 @@ export const useClientStore = create((set) => ({
       return { success: false, error: message };
     }
   },
+
+  updatePhone: async (phone) => {
+    try {
+      set({ loading: true, error: null });
+      const { data } = await clientsApi.updateClientPhone(phone);
+      const updatedClient = data?.data || data?.client || data;
+      set({ info: updatedClient, loading: false });
+      return { success: true };
+    } catch (err) {
+      const message = err.response?.data?.message || 'No se pudo actualizar el teléfono';
+      set({ error: message, loading: false });
+      return { success: false, error: message };
+    }
+  },
 }));

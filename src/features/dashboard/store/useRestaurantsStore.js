@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import * as restaurantsApi from '../../../shared/api/restaurants';
-import { useOrderStore } from './useOrderStore';
 
 function extractList(data) {
   if (!data) return [];
@@ -35,17 +34,7 @@ export const useRestaurantsStore = create((set) => ({
     }
   },
 
-  setSelectedRestaurant: (id) => set((prev) => {
-     if (prev.selectedRestaurantId !== id) {
-         useOrderStore.getState().clearCart();
-     }
-     return { selectedRestaurantId: id };
-  }),
+  setSelectedRestaurant: (id) => set({ selectedRestaurantId: id }),
 
-  clearSelectedRestaurant: () => set((prev) => {
-    if (prev.selectedRestaurantId !== null) {
-      useOrderStore.getState().clearCart();
-    }
-    return { selectedRestaurantId: null };
-  }),
+  clearSelectedRestaurant: () => set({ selectedRestaurantId: null }),
 }));

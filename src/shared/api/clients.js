@@ -8,5 +8,7 @@ export const getClientByUserId = (userId) => axiosGestion.get(`/clients/${userId
 
 export const updateClient = (payload) => axiosGestion.put('/clients/update', payload);
 
+export const updateClientPhone = (phone) => axiosGestion.put('/clients/update', { phone });
+
 export const addAddress = (address) =>
   axiosGestion.put('/clients/addAddress', { address });
