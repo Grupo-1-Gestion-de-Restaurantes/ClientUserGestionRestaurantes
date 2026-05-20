@@ -1,0 +1,9 @@
+export * from './api';
+export * as authApi from './auth';
+export * as dishesApi from './dishes';
+export * as restaurantsApi from './restaurants';
+export * as ordersApi from './orders';
+export * as invoicesApi from './invoices';
+export * as clientsApi from './clients';
+export * as promotionsApi from './promotions';
+export * as notificationsApi from './notifications';
