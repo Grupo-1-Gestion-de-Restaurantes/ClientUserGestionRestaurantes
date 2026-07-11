@@ -19,6 +19,7 @@ export const DashboardLayout = () => {
   const cartCount = useOrderStore((s) =>
     s.cartItems.reduce((total, it) => total + it.qty, 0),
   );
+  const clearPromotion = useOrderStore((s) => s.clearPromotion);
 
   return (
     <main className="relative h-screen font-sans text-on-base overflow-hidden flex flex-col lg:flex-row">

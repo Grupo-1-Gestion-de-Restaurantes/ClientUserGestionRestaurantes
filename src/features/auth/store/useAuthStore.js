@@ -108,12 +108,20 @@ export const useAuthStore = create(
 
       logout: () => {
         if (window._authRefreshTimer) clearTimeout(window._authRefreshTimer);
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('clientuser:orderWizardDone:') ||
+              key.startsWith('clientuser:onboarding:') ||
+              key === 'clientuser:onboardingDone') {
+            localStorage.removeItem(key);
+          }
+        });
         set({ ...emptySession, loading: false, error: null });
       },
 
       login: async ({ emailOrUsername, password }) => {
         try {
-          set({ loading: true, error: null });
+          if (window._authRefreshTimer) clearTimeout(window._authRefreshTimer);
+          set({ ...emptySession, loading: true, error: null });
           const { data } = await authApi.login({ emailOrUsername: emailOrUsername, password: password });
 
           const token = data?.accessToken || data?.token;
@@ -137,16 +145,20 @@ export const useAuthStore = create(
             return { success: false, error: message };
           }
 
-          try {
-            await getMyInfo();
-          } catch (clientErr) {
-            const status = clientErr.response?.status;
-            const message =
-              status === 404
-                ? 'No tienes cuenta de cliente registrada'
-                : (clientErr.response?.data?.message || 'No se pudo validar tu cuenta de cliente');
-            set({ ...emptySession, loading: false, error: message, isLoadingAuth: false });
-            return { success: false, error: message };
+          const isClient = userDetails?.role === 'CLIENT_ROLE' || userDetails?.role === 'USER_ROLE';
+
+          if (isClient) {
+            try {
+              await getMyInfo();
+            } catch (clientErr) {
+              const status = clientErr.response?.status;
+              const message =
+                status === 404
+                  ? 'No tienes cuenta de cliente registrada'
+                  : (clientErr.response?.data?.message || 'No se pudo validar tu cuenta de cliente');
+              set({ ...emptySession, loading: false, error: message, isLoadingAuth: false });
+              return { success: false, error: message };
+            }
           }
 
           set({
@@ -157,7 +169,16 @@ export const useAuthStore = create(
 
           return { success: true };
         } catch (err) {
-          const message = err.response?.data?.message || 'Credenciales inválidas';
+          let message = 'Credenciales inválidas';
+          if (!err.response) {
+            message = 'No se pudo conectar con el servidor. Verifica tu conexión de red o si el servidor está en ejecución.';
+          } else if (err.response.data && (err.response.data.message || err.response.data.detail)) {
+            message = err.response.data.message || err.response.data.detail;
+          } else if (err.response.status === 401) {
+            message = 'Credenciales inválidas';
+          } else if (err.response.status === 500) {
+            message = 'Error interno del servidor de autenticación';
+          }
           set({ error: message, loading: false });
           return { success: false, error: message };
         }

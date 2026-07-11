@@ -1,24 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ChevronDown,
-  ChevronUp,
   Download,
   Eye,
   FileText,
   Receipt,
   ShoppingBag,
+  Star,
   X,
-  XCircle,
 } from 'lucide-react';
 import { useOrdersStore } from '../store/useOrdersStore';
 import { useInvoicesStore } from '../store/useInvoicesStore';
-import { showError, showSuccess } from '../../../shared/utils/toast';
+import { useReviewsStore } from '../store/useReviewsStore';
+import { useRestaurantsStore } from '../store/useRestaurantsStore';
+import { showError } from '../../../shared/utils/toast';
 import { DishImage } from '../components/DishImage';
+import { ReviewModal } from '../components/ReviewModal';
 
 const STATUS_LABEL = {
   PENDIENTE: 'Pendiente',
   CONFIRMADO: 'Confirmado',
   EN_PREPARACION: 'En preparación',
+  LISTO_PARA_RECOGER: 'Listo para recoger',
   LISTO: 'Listo',
   ENTREGADO: 'Entregado',
   CANCELADO: 'Cancelado',
@@ -28,10 +31,13 @@ const STATUS_COLOR = {
   PENDIENTE: 'bg-secondary text-on-secondary',
   CONFIRMADO: 'bg-secondary text-on-secondary',
   EN_PREPARACION: 'bg-primary text-on-primary',
+  LISTO_PARA_RECOGER: 'bg-primary text-on-primary',
   LISTO: 'bg-primary text-on-primary',
   ENTREGADO: 'bg-surface-3 text-on-base',
   CANCELADO: 'bg-surface-3 text-on-base-muted',
 };
+
+const REVIEWABLE_STATUSES = ['PENDIENTE', 'CONFIRMADO', 'EN_PREPARACION', 'LISTO_PARA_RECOGER', 'LISTO', 'ENTREGADO'];
 
 const formatDate = (iso) => {
   try {
@@ -48,6 +54,15 @@ const formatDate = (iso) => {
 
 const shortId = (id) => String(id || '').slice(-6).toUpperCase();
 
+const getDishPhoto = (it) => {
+  if (!it) return null;
+  if (it.photo) return it.photo;
+  const productPhoto = it.productId?.photo;
+  if (typeof productPhoto === 'string') return productPhoto;
+  if (productPhoto && typeof productPhoto === 'object' && productPhoto.url) return productPhoto.url;
+  return it.dish?.photo || null;
+};
+
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -59,12 +74,48 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-const OrderRow = ({ order, onCancel }) => {
+const REVIEWED_ORDERS_KEY = 'express-reviewed-orders';
+
+const getReviewedOrders = () => {
+  try {
+    const raw = localStorage.getItem(REVIEWED_ORDERS_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+  } catch {
+    return new Set();
+  }
+};
+
+const markOrderAsReviewed = (orderId) => {
+  if (!orderId) return;
+  const reviewed = getReviewedOrders();
+  reviewed.add(String(orderId));
+  localStorage.setItem(REVIEWED_ORDERS_KEY, JSON.stringify([...reviewed]));
+};
+
+const OrderRow = ({ order, onReview, isOrderReviewed, restaurants }) => {
   const [open, setOpen] = useState(false);
   const status = order.status || 'PENDIENTE';
-  const canCancel = status === 'PENDIENTE';
   const items = Array.isArray(order.items) ? order.items : [];
   const total = Number(order.total) || 0;
+
+  const orderId = order._id || order.id;
+  const restaurantId =
+    order.restaurant?._id ||
+    order.restaurant?.id ||
+    order.restaurantId ||
+    (typeof order.restaurant === 'string' ? order.restaurant : null);
+  const restaurantFromStore = restaurantId
+    ? restaurants.find((r) => String(r._id || r.id) === String(restaurantId))
+    : null;
+  const restaurantName =
+    order.restaurant?.name ||
+    order.restaurantName ||
+    restaurantFromStore?.name ||
+    'Restaurante';
+  const canReview = REVIEWABLE_STATUSES.includes(status) && !!restaurantId && !!onReview;
+  const alreadyReviewed = isOrderReviewed(orderId);
 
   return (
     <article className="rounded-3xl bg-surface-2 border-[3px] border-stroke-strong overflow-hidden shadow-brutal-sm">
@@ -97,7 +148,7 @@ const OrderRow = ({ order, onCancel }) => {
           </span>
           <span className="text-on-base font-bangers text-lg">Q{total.toFixed(2)}</span>
           {open ? (
-            <ChevronUp size={18} className="text-on-base-muted" />
+            <ChevronDown size={18} className="text-on-base-muted rotate-180" />
           ) : (
             <ChevronDown size={18} className="text-on-base-muted" />
           )}
@@ -113,7 +164,7 @@ const OrderRow = ({ order, onCancel }) => {
                   key={`${order._id || order.id}-${i}`}
                   className="flex items-center gap-3 text-sm"
                 >
-                  <DishImage src={it.photo || it.productId?.photo || it.dish?.photo} className="w-10 h-10 rounded-lg border-2 border-stroke-strong shrink-0" />
+                  <DishImage src={getDishPhoto(it)} className="w-10 h-10 rounded-lg border-2 border-stroke-strong shrink-0" />
                   <div className="flex-1 min-w-0 flex items-center justify-between">
                     <div className="text-on-base font-semibold truncate">
                       {it.quantity || it.qty || 1}× {it.name || it.dish?.name || 'Plato'}
@@ -127,23 +178,19 @@ const OrderRow = ({ order, onCancel }) => {
             </ul>
           ) : null}
 
-          {canCancel ? (
-            <button
-              type="button"
-              onClick={async () => {
-                const res = await onCancel(order._id || order.id);
-                if (res?.success) {
-                  showSuccess('Pedido cancelado');
-                } else if (res?.error) {
-                  showError(res.error);
-                }
-              }}
-              className="mt-3 flex items-center justify-center gap-2 w-full bg-primary text-on-primary py-2 rounded-xl border-[3px] border-stroke-strong shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] transition-all font-bangers tracking-widest"
-            >
-              <XCircle size={16} />
-              CANCELAR PEDIDO
-            </button>
-          ) : null}
+          <div className="mt-3 flex flex-col sm:flex-row gap-2">
+            {canReview && (
+              <button
+                type="button"
+                onClick={() => onReview({ restaurantId, restaurantName, orderId })}
+                disabled={alreadyReviewed}
+                className="flex-1 flex items-center justify-center gap-2 bg-secondary text-on-secondary py-2 rounded-xl border-[3px] border-stroke-strong shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] transition-all font-bangers tracking-widest disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <Star size={16} />
+                {alreadyReviewed ? 'YA CALIFICASTE' : 'CALIFICAR RESTAURANTE'}
+              </button>
+            )}
+          </div>
         </div>
       ) : null}
     </article>
@@ -157,7 +204,6 @@ export const OrderHistoryPage = () => {
   const loading = useOrdersStore((s) => s.loading);
   const error = useOrdersStore((s) => s.error);
   const fetchMyOrders = useOrdersStore((s) => s.fetchMyOrders);
-  const cancelOrder = useOrdersStore((s) => s.cancelOrder);
 
   const invoices = useInvoicesStore((s) => s.invoices);
   const invoicesLoading = useInvoicesStore((s) => s.loading);
@@ -168,11 +214,23 @@ export const OrderHistoryPage = () => {
   const downloadInvoicePdf = useInvoicesStore((s) => s.downloadInvoicePdf);
   const clearDetail = useInvoicesStore((s) => s.clearDetail);
 
+  const fetchMyComments = useReviewsStore((s) => s.fetchMyComments);
+
+  const restaurants = useRestaurantsStore((s) => s.restaurants);
+  const fetchRestaurants = useRestaurantsStore((s) => s.fetchRestaurants);
+
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewedOrders, setReviewedOrders] = useState(() => getReviewedOrders());
 
   useEffect(() => {
     fetchMyOrders();
-  }, [fetchMyOrders]);
+    fetchRestaurants();
+  }, [fetchMyOrders, fetchRestaurants]);
+
+  useEffect(() => {
+    fetchMyComments();
+  }, [fetchMyComments]);
 
   useEffect(() => {
     if (tab !== 'invoices') return;
@@ -180,10 +238,15 @@ export const OrderHistoryPage = () => {
     fetchMyInvoices();
   }, [tab, invoices.length, fetchMyInvoices]);
 
-  const handleCancel = async (id) => {
-    const res = await cancelOrder(id);
-    if (res.success) fetchMyOrders();
-    return res;
+  const isOrderReviewed = (orderId) => {
+    if (!orderId) return false;
+    return reviewedOrders.has(String(orderId));
+  };
+
+  const handleOrderReviewed = (orderId) => {
+    if (!orderId) return;
+    markOrderAsReviewed(orderId);
+    setReviewedOrders(getReviewedOrders());
   };
 
   const invoiceItems = useMemo(() => {
@@ -280,7 +343,15 @@ export const OrderHistoryPage = () => {
           {orders.length ? (
             <div className="space-y-3">
               {orders.map((o) => (
-                <OrderRow key={o._id || o.id} order={o} onCancel={handleCancel} />
+                <OrderRow
+                  key={o._id || o.id}
+                  order={o}
+                  restaurants={restaurants}
+                  onReview={({ restaurantId: rid, restaurantName, orderId }) =>
+                    setReviewTarget({ restaurantId: rid, restaurantName, orderId })
+                  }
+                  isOrderReviewed={isOrderReviewed}
+                />
               ))}
             </div>
           ) : !loading && !error ? (
@@ -394,7 +465,7 @@ export const OrderHistoryPage = () => {
             }}
             aria-hidden
           />
-          <div className="relative w-full max-w-xl rounded-3xl bg-surface-2 border-[3px] border-stroke-strong shadow-brutal p-6">
+          <div className="relative w-full max-w-xl rounded-3xl bg-surface-2 border-[3px] border-stroke-strong shadow-brutal p-6 max-h-[85vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="text-xs text-on-base-muted tracking-widest uppercase">
@@ -472,6 +543,18 @@ export const OrderHistoryPage = () => {
           </div>
         </div>
       ) : null}
+
+      <ReviewModal
+        open={!!reviewTarget}
+        onClose={(created) => {
+          setReviewTarget(null);
+          if (created) fetchMyComments();
+        }}
+        onReviewed={handleOrderReviewed}
+        restaurantId={reviewTarget?.restaurantId}
+        restaurantName={reviewTarget?.restaurantName}
+        orderId={reviewTarget?.orderId}
+      />
     </div>
   );
 };

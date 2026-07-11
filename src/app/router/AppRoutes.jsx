@@ -4,11 +4,13 @@ import { PartnersPage } from '../../features/partners/pages/PartnersPage';
 import { DashboardLayout } from '../../features/dashboard/layout/DashboardLayout';
 import { DashboardHomePage } from '../../features/dashboard/pages/DashboardHomePage';
 import { RestaurantsPage } from '../../features/dashboard/pages/RestaurantsPage';
+import { RestaurantDetailPage } from '../../features/dashboard/pages/RestaurantDetailPage';
 import { PromotionsPage } from '../../features/dashboard/pages/PromotionsPage';
 import { ProfilePage } from '../../features/dashboard/pages/ProfilePage';
 import { OrderHistoryPage } from '../../features/dashboard/pages/OrderHistoryPage';
 import { ReservationsPage } from '../../features/dashboard/pages/ReservationsPage';
 import { EventsPage } from '../../features/dashboard/pages/EventsPage';
+import { MyReviewsPage } from '../../features/dashboard/pages/MyReviewsPage';
 import { AuthPage } from '../../features/auth/pages/AuthPage';
 import { VerifyEmailPage } from '../../features/auth/pages/VerifyEmailPage';
 import { ResetPasswordPage } from '../../features/auth/pages/ResetPasswordPage';
@@ -37,11 +39,13 @@ export const AppRoutes = () => {
       >
         <Route index element={<DashboardHomePage />} />
         <Route path="restaurants" element={<RestaurantsPage />} />
+        <Route path="restaurants/:id" element={<RestaurantDetailPage />} />
         <Route path="promotions" element={<PromotionsPage />} />
         <Route path="reservations" element={<ReservationsPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="history" element={<OrderHistoryPage />} />
+        <Route path="reviews" element={<MyReviewsPage />} />
       </Route>
 
       <Route

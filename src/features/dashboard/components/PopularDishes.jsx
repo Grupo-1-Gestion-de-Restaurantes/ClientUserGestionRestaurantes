@@ -1,4 +1,5 @@
 import { Plus, Star } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useDishesStore } from '../store/useDishesStore';
 import { useOrderStore } from '../store/useOrderStore';
 import { DishImage } from './DishImage';
@@ -7,7 +8,12 @@ export const PopularDishes = ({ query = '', category = null, sortBy = 'popular' 
   const dishes = useDishesStore((s) => s.dishes);
   const loading = useDishesStore((s) => s.loading);
   const error = useDishesStore((s) => s.error);
-  const addItem = useOrderStore((s) => s.addItem);
+  const addNormalItem = useOrderStore((s) => s.addNormalItem);
+  const activePromotion = useOrderStore((s) => s.activePromotion);
+
+  const cartItems = useOrderStore((s) => s.cartItems);
+  const incQty = useOrderStore((s) => s.incQty);
+  const decQty = useOrderStore((s) => s.decQty);
 
   const normalized = String(query).trim().toLowerCase();
 
@@ -69,6 +75,7 @@ export const PopularDishes = ({ query = '', category = null, sortBy = 'popular' 
         {filtered.map((d) => {
           const id = d._id || d.id;
           const price = Number(d.price) || 0;
+          const cartItem = cartItems.find((x) => x.dishId === id);
           return (
             <div
               key={id}
@@ -80,22 +87,45 @@ export const PopularDishes = ({ query = '', category = null, sortBy = 'popular' 
                   alt={d.name}
                   className="h-16 w-16 rounded-2xl border-[3px] border-stroke-strong"
                 />
-                <button
-                  type="button"
-                  onClick={() =>
-                    addItem({
-                      dishId: id,
-                      name: d.name,
-                      photo: d.photo,
-                      subtitle: d.description,
-                      price,
-                    })
-                  }
-                  className="h-10 w-10 rounded-2xl bg-primary text-on-primary flex items-center justify-center border-[3px] border-stroke-strong shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] transition-all"
-                  aria-label={`Agregar ${d.name}`}
-                >
-                  <Plus size={18} strokeWidth={3} />
-                </button>
+                {cartItem ? (
+                  <div className="flex items-center gap-1.5 shrink-0 bg-surface-3 border-[2px] border-stroke-strong rounded-xl p-0.5 shadow-brutal-sm">
+                    <button
+                      type="button"
+                      onClick={() => decQty(id)}
+                      className="h-6 w-6 rounded-lg bg-surface-2 border-[2px] border-stroke-strong flex items-center justify-center font-bold hover:bg-surface-4 text-xs"
+                    >
+                      -
+                    </button>
+                    <span className="w-5 text-center text-xs font-black text-on-base">{cartItem.qty}</span>
+                    <button
+                      type="button"
+                      onClick={() => incQty(id)}
+                      className="h-6 w-6 rounded-lg bg-primary text-on-primary border-[2px] border-stroke-strong flex items-center justify-center font-bold hover:bg-opacity-90 text-xs"
+                    >
+                      +
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (activePromotion) {
+                        toast('Se inició un pedido normal. La promoción anterior se descartó.', { icon: 'ℹ️' });
+                      }
+                      addNormalItem({
+                        dishId: id,
+                        name: d.name,
+                        photo: d.photo,
+                        subtitle: d.description,
+                        price,
+                      });
+                    }}
+                    className="h-10 w-10 rounded-2xl bg-primary text-on-primary flex items-center justify-center border-[3px] border-stroke-strong shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] transition-all"
+                    aria-label={`Agregar ${d.name}`}
+                  >
+                    <Plus size={18} strokeWidth={3} />
+                  </button>
+                )}
               </div>
 
               <div className="mt-4">

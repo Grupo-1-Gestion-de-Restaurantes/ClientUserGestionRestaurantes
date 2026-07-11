@@ -84,7 +84,6 @@ export const ProfilePage = () => {
   };
 
   const onUpdateProfile = async (data) => {
-    console.log('Updating profile with data:', data);
     const res = await updateMyInfo(data);
     if (res.success) {
       showSuccess('Perfil actualizado');
@@ -274,6 +273,22 @@ export const ProfilePage = () => {
               <option value="Otro">Otro</option>
             </select>
 
+            <input
+              type="text"
+              placeholder="Información de Seguridad (ej. Garita, portón negro)"
+              disabled={loading}
+              {...regAddress('address.securityInfo')}
+              className="w-full bg-surface-3 text-on-base placeholder:text-on-base-faint border-[3px] border-stroke-strong rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-secondary"
+            />
+
+            <input
+              type="text"
+              placeholder="Referencia (ej. Frente al parque)"
+              disabled={loading}
+              {...regAddress('address.reference')}
+              className="w-full bg-surface-3 text-on-base placeholder:text-on-base-faint border-[3px] border-stroke-strong rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-secondary"
+            />
+
             <button
               type="submit"
               disabled={loading}
@@ -292,9 +307,18 @@ export const ProfilePage = () => {
                 className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-2xl px-4 py-3 text-sm font-semibold"
               >
                 <MapPin size={14} className="text-secondary shrink-0" />
-                <span className="truncate flex-1">
-                  {addr?.addressLine} {addr?.houseNumber}
-                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="truncate text-on-base font-semibold">
+                    {addr?.addressLine} {addr?.houseNumber}
+                  </div>
+                  {(addr?.securityInfo || addr?.reference) && (
+                    <div className="text-[10px] text-on-base-muted font-normal truncate mt-0.5">
+                      {addr.securityInfo && `Seguridad: ${addr.securityInfo}`}
+                      {addr.securityInfo && addr.reference && ' | '}
+                      {addr.reference && `Ref: ${addr.reference}`}
+                    </div>
+                  )}
+                </div>
                 {addr?.alias ? (
                   <span className="shrink-0 text-[10px] font-bangers uppercase tracking-widest bg-surface-2 border-2 border-stroke-strong px-2 py-0.5 rounded-full">
                     {addr.alias}

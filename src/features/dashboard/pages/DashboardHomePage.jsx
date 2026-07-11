@@ -8,6 +8,7 @@ import { useAuthStore } from '../../auth/store/useAuthStore';
 import { useDishesStore } from '../store/useDishesStore';
 import { useRestaurantsStore } from '../store/useRestaurantsStore';
 import { useClientStore } from '../store/useClientStore';
+import { useOrderStore } from '../store/useOrderStore';
 
 export const DashboardHomePage = () => {
   const [query, setQuery] = useState('');
@@ -24,6 +25,13 @@ export const DashboardHomePage = () => {
   const fetchRestaurants = useRestaurantsStore((s) => s.fetchRestaurants);
 
   const selectedRestaurantId = useRestaurantsStore((s) => s.selectedRestaurantId);
+  const clearPromotion = useOrderStore((s) => s.clearPromotion);
+
+  useEffect(() => {
+    if (!selectedRestaurantId) {
+      clearPromotion();
+    }
+  }, [selectedRestaurantId, clearPromotion]);
 
   useEffect(() => {
     fetchMyInfo();
