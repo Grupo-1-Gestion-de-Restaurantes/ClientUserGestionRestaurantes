@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as ordersApi from '../../../shared/api/orders';
 import { useClientStore } from './useClientStore';
+import { isDishApplicableToPromo } from '../utils/promoHelpers';
 
 function round2(n) {
   return Math.round(n * 100) / 100;
@@ -18,7 +19,7 @@ function calcDiscount(subtotal, promo, cartItems) {
   if (promo.dishesApplicables && promo.dishesApplicables.length > 0) {
     let discount = 0;
     cartItems.forEach(item => {
-      const isApplicable = promo.dishesApplicables.some(id => String(id) === String(item.dishId));
+      const isApplicable = isDishApplicableToPromo(item.dishId, promo);
       if (isApplicable) {
         discount += (item.price * item.qty) * (promo.discountPercentage / 100);
       }
@@ -52,6 +53,82 @@ export const useOrderStore = create(
   setPromotionId: (promotionId) => set({ promotionId }),
   setActivePromotion: (activePromotion) => set({ activePromotion }),
   setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
+
+  beginPromoOrder: (promo) => {
+    if (!promo) return;
+    const id = promo._id || promo.id;
+    set({
+      cartItems: [],
+      promoCode: promo.title || '',
+      promotionId: id,
+      activePromotion: promo,
+    });
+  },
+
+  addNormalItem: (dish) => {
+    if (!dish) return;
+    const state = get();
+    if (state.promotionId || state.activePromotion) {
+      set({ cartItems: [], promoCode: '', promotionId: null, activePromotion: null });
+    }
+    const id = dish.dishId || dish._id || dish.id;
+    const { cartItems } = get();
+    const idx = cartItems.findIndex((x) => x.dishId === id);
+    if (idx >= 0) {
+      set({
+        cartItems: cartItems.map((x) =>
+          x.dishId === id ? { ...x, qty: x.qty + 1 } : x,
+        ),
+      });
+      return;
+    }
+    set({
+      cartItems: [
+        ...cartItems,
+        {
+          dishId: id,
+          name: dish.name,
+          photo: dish.photo || null,
+          subtitle: dish.subtitle || dish.description || '',
+          price: Number(dish.price) || 0,
+          qty: 1,
+        },
+      ],
+    });
+  },
+
+  addPromoItem: (dish) => {
+    if (!dish) return false;
+    const state = get();
+    if (!state.activePromotion) return false;
+    const id = dish.dishId || dish._id || dish.id;
+    const promo = state.activePromotion;
+    if (!isDishApplicableToPromo(id, promo)) return false;
+    const { cartItems } = state;
+    const idx = cartItems.findIndex((x) => x.dishId === id);
+    if (idx >= 0) {
+      set({
+        cartItems: cartItems.map((x) =>
+          x.dishId === id ? { ...x, qty: x.qty + 1 } : x,
+        ),
+      });
+      return true;
+    }
+    set({
+      cartItems: [
+        ...cartItems,
+        {
+          dishId: id,
+          name: dish.name,
+          photo: dish.photo || null,
+          subtitle: dish.subtitle || dish.description || '',
+          price: Number(dish.price) || 0,
+          qty: 1,
+        },
+      ],
+    });
+    return true;
+  },
 
   addItem: (dish) => {
     if (!dish) return;
@@ -103,6 +180,8 @@ export const useOrderStore = create(
   },
 
   clearCart: () => set({ cartItems: [], promoCode: '', promotionId: null, activePromotion: null }),
+
+  clearPromotion: () => set({ promoCode: '', promotionId: null, activePromotion: null }),
 
   getTotals: () => {
     const { cartItems, activePromotion, orderType } = get();
@@ -186,13 +265,17 @@ export const useOrderStore = create(
       name: 'clientuser-order',
       partialize: (state) => ({
         cartItems: state.cartItems,
-        promoCode: state.promoCode,
-        promotionId: state.promotionId,
-        activePromotion: state.activePromotion,
         orderType: state.orderType,
         addressId: state.addressId,
         paymentMethod: state.paymentMethod,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.promoCode = '';
+          state.promotionId = null;
+          state.activePromotion = null;
+        }
+      },
     }
   )
 );

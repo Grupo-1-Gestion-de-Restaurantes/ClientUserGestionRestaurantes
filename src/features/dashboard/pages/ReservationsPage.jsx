@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, Clock, Users, Plus, CheckCircle2, XCircle, Clock4, MapPin, X } from 'lucide-react';
 import { useReservationsStore } from '../store/useReservationsStore';
 import { useRestaurantsStore } from '../store/useRestaurantsStore';
-import { reservationsApi } from '../../../shared/api/reservations';
-import { useAuthStore } from '../../auth/store/useAuthStore';
 import { tablesApi } from '../../../shared/api/tables';
 import { DayPicker } from 'react-day-picker';
-import { format } from 'date-fns';
+import { format, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 
@@ -15,10 +13,10 @@ import 'react-day-picker/dist/style.css';
 export const ReservationsPage = () => {
   const { reservations, loading, fetchMyReservations, createReservation } = useReservationsStore();
   const { restaurants, fetchRestaurants } = useRestaurantsStore();
-  const token = useAuthStore((s) => s.token);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState('ALL');
-  const [detailModal, setDetailModal] = useState({ open: false, reservation: null, loading: false });
+  const [detailModal, setDetailModal] = useState({ open: false, reservation: null });
   
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedRestaurant, setSelectedRestaurant] = useState('');
@@ -34,10 +32,8 @@ export const ReservationsPage = () => {
 
   useEffect(() => {
     if (selectedRestaurant) {
-      console.log('Fetching tables for restaurant:', selectedRestaurant);
       setSelectedTable('');
       tablesApi.getByRestaurant(selectedRestaurant).then(res => {
-        console.log('API Response for tables:', res);
         if (res?.success && Array.isArray(res.data)) {
           setTables(res.data);
         } else if (Array.isArray(res)) {
@@ -45,8 +41,7 @@ export const ReservationsPage = () => {
         } else {
           setTables([]);
         }
-      }).catch(err => {
-        console.error('Error in useEffect tables:', err);
+      }).catch(() => {
         setTables([]);
       });
     } else {
@@ -61,21 +56,28 @@ export const ReservationsPage = () => {
       return;
     }
 
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const combined = new Date(`${dateStr}T${time}:00`);
+    if (combined <= new Date()) {
+      toast.error('La fecha y hora deben ser futuras');
+      return;
+    }
+
     const res = await createReservation({
       restaurantId: selectedRestaurant,
       tableId: selectedTable,
-      reservationDate: format(selectedDate, 'yyyy-MM-dd'),
-      time,
+      reservationDate: combined.toISOString(),
       numberOfPeople: people
     });
 
     if (res.success) {
-      toast.success('Reserva creada con éxito');
       setIsModalOpen(false);
       resetForm();
-      fetchMyReservations(); // Refresh list
+      fetchMyReservations();
+      setShowSuccessModal(true);
     } else {
-      toast.error(res.message || 'Error al crear reserva');
+      const errMsg = res.error || res.message || (Array.isArray(res.errors) && res.errors[0]?.message) || 'Error al crear reserva';
+      toast.error(errMsg);
     }
   };
 
@@ -107,15 +109,28 @@ export const ReservationsPage = () => {
     filterStatus === 'ALL' || r.status === filterStatus
   );
 
-  const handleViewDetails = async (res) => {
-    setDetailModal({ open: true, reservation: res, loading: true });
-    const id = res._id || res.id;
-    const result = await reservationsApi.getById(id, token);
-    if (result.success && result.data) {
-      setDetailModal({ open: true, reservation: result.data, loading: false });
-    } else {
-      toast.error(result.message || 'No se pudieron cargar los detalles');
-      setDetailModal({ open: false, reservation: null, loading: false });
+  const handleViewDetails = (res) => {
+    setDetailModal({ open: true, reservation: res });
+  };
+
+  const getReservationDate = (reservation) => {
+    const raw = reservation?.date || reservation?.reservationDate;
+    if (!raw) return 'N/A';
+    try {
+      return format(new Date(raw), 'PPPP', { locale: es });
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  const getReservationTime = (reservation) => {
+    if (reservation?.time) return `${reservation.time} hs`;
+    const raw = reservation?.reservationDate;
+    if (!raw) return 'N/A';
+    try {
+      return `${format(new Date(raw), 'HH:mm')} hs`;
+    } catch {
+      return 'N/A';
     }
   };
 
@@ -239,6 +254,7 @@ export const ReservationsPage = () => {
                   mode="single"
                   selected={selectedDate}
                   onSelect={(d) => d && setSelectedDate(d)}
+                  disabled={{ before: startOfToday() }}
                   locale={es}
                   className="mx-auto"
                 />
@@ -337,71 +353,85 @@ export const ReservationsPage = () => {
 
       {detailModal.open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-surface-1/80 backdrop-blur-sm" onClick={() => setDetailModal({ open: false, reservation: null, loading: false })} />
+          <div className="absolute inset-0 bg-surface-1/80 backdrop-blur-sm" onClick={() => setDetailModal({ open: false, reservation: null })} />
           <div className="relative w-full max-w-md bg-surface-2 border-[3px] border-stroke-strong rounded-3xl shadow-brutal p-6">
-            {detailModal.loading ? (
-              <div className="flex justify-center py-8">
-                <Clock className="animate-spin text-primary" size={32} />
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-bangers text-2xl text-on-base">Detalle de Reserva</h3>
+              <button onClick={() => setDetailModal({ open: false, reservation: null })} className="text-on-base-muted hover:text-on-base">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
+                <MapPin size={16} className="text-secondary" />
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-on-base-muted">Restaurante</div>
+                  <div className="text-sm font-semibold text-on-base">{detailModal.reservation?.restaurant?.name || 'N/A'}</div>
+                </div>
               </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-bangers text-2xl text-on-base">Detalle de Reserva</h3>
-                  <button onClick={() => setDetailModal({ open: false, reservation: null, loading: false })} className="text-on-base-muted hover:text-on-base">
-                    <X size={20} />
-                  </button>
+              <div className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
+                <CalendarIcon size={16} className="text-secondary" />
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-on-base-muted">Fecha</div>
+                  <div className="text-sm font-semibold text-on-base">{getReservationDate(detailModal.reservation)}</div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
-                    <MapPin size={16} className="text-secondary" />
-                    <div>
-                      <div className="text-[10px] uppercase tracking-widest text-on-base-muted">Restaurante</div>
-                      <div className="text-sm font-semibold text-on-base">{detailModal.reservation?.restaurant?.name || 'N/A'}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
-                    <CalendarIcon size={16} className="text-secondary" />
-                    <div>
-                      <div className="text-[10px] uppercase tracking-widest text-on-base-muted">Fecha</div>
-                      <div className="text-sm font-semibold text-on-base">{detailModal.reservation?.date ? format(new Date(detailModal.reservation.date), 'PPPP', { locale: es }) : 'N/A'}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
-                    <Clock size={16} className="text-secondary" />
-                    <div>
-                      <div className="text-[10px] uppercase tracking-widest text-on-base-muted">Hora</div>
-                      <div className="text-sm font-semibold text-on-base">{detailModal.reservation?.time || 'N/A'}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
-                    <Users size={16} className="text-secondary" />
-                    <div>
-                      <div className="text-[10px] uppercase tracking-widest text-on-base-muted">Personas</div>
-                      <div className="text-sm font-semibold text-on-base">{detailModal.reservation?.numberOfPeople || 'N/A'}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
-                    {getStatusIcon(detailModal.reservation?.status)}
-                    <div>
-                      <div className="text-[10px] uppercase tracking-widest text-on-base-muted">Estado</div>
-                      <div className="text-sm font-semibold text-on-base">{detailModal.reservation?.status || 'N/A'}</div>
-                    </div>
-                  </div>
-                  {detailModal.reservation?.occasion && (
-                    <div className="bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
-                      <div className="text-[10px] uppercase tracking-widest text-on-base-muted mb-1">Ocasión</div>
-                      <div className="text-sm font-semibold text-on-base">{detailModal.reservation.occasion}</div>
-                    </div>
-                  )}
+              </div>
+              <div className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
+                <Clock size={16} className="text-secondary" />
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-on-base-muted">Hora</div>
+                  <div className="text-sm font-semibold text-on-base">{getReservationTime(detailModal.reservation)}</div>
                 </div>
-                <button
-                  onClick={() => setDetailModal({ open: false, reservation: null, loading: false })}
-                  className="mt-6 w-full bg-secondary text-on-secondary font-bangers tracking-widest py-3 rounded-xl border-[3px] border-stroke-strong"
-                >
-                  CERRAR
-                </button>
-              </>
-            )}
+              </div>
+              <div className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
+                <Users size={16} className="text-secondary" />
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-on-base-muted">Personas</div>
+                  <div className="text-sm font-semibold text-on-base">{detailModal.reservation?.numberOfPeople || 'N/A'}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
+                {getStatusIcon(detailModal.reservation?.status)}
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-on-base-muted">Estado</div>
+                  <div className="text-sm font-semibold text-on-base">{detailModal.reservation?.status || 'N/A'}</div>
+                </div>
+              </div>
+              {detailModal.reservation?.occasion && (
+                <div className="bg-surface-3 border-[3px] border-stroke-strong rounded-xl px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-widest text-on-base-muted mb-1">Ocasión</div>
+                  <div className="text-sm font-semibold text-on-base">{detailModal.reservation.occasion}</div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setDetailModal({ open: false, reservation: null })}
+              className="mt-6 w-full bg-secondary text-on-secondary font-bangers tracking-widest py-3 rounded-xl border-[3px] border-stroke-strong"
+            >
+              CERRAR
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-surface-1/80 backdrop-blur-sm" onClick={() => setShowSuccessModal(false)} />
+          <div className="relative w-full max-w-md bg-surface-2 border-[3px] border-stroke-strong rounded-3xl shadow-brutal p-8 text-center">
+            <div className="mx-auto h-20 w-20 rounded-full bg-secondary/20 border-[3px] border-secondary flex items-center justify-center mb-5">
+              <CheckCircle2 size={40} className="text-secondary animate-bounce" />
+            </div>
+            <h3 className="font-bangers text-3xl text-on-base tracking-wider">¡Reserva creada!</h3>
+            <p className="mt-3 text-sm text-on-base-muted leading-relaxed">
+              Tu reservación ha sido registrada. Te notificaremos cuando el restaurante la confirme.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowSuccessModal(false)}
+              className="mt-6 w-full bg-primary text-on-primary font-bangers tracking-widest py-3 rounded-xl border-[3px] border-stroke-strong shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            >
+              ENTENDIDO
+            </button>
           </div>
         </div>
       )}

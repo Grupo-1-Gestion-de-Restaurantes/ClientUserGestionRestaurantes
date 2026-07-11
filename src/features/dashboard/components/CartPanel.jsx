@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ChevronRight,
   CreditCard,
@@ -53,6 +54,7 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
   const decQty = useOrderStore((s) => s.decQty);
   const getTotals = useOrderStore((s) => s.getTotals);
   const clearCart = useOrderStore((s) => s.clearCart);
+  const clearPromotion = useOrderStore((s) => s.clearPromotion);
   const activePromotion = useOrderStore((s) => s.activePromotion);
 
   const selectedRestaurantId = useRestaurantsStore((s) => s.selectedRestaurantId);
@@ -255,6 +257,66 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
               )}
             </div>
           )}
+
+          {/* Payment Method Selector */}
+          <div className="mt-3">
+            <div className="text-[10px] text-on-base-muted font-bangers tracking-widest uppercase mb-1">
+              Método de Pago
+            </div>
+            <div className="flex gap-2">
+              {PAYMENT_METHODS.map((m) => {
+                const Icon = m.Icon;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(m.id)}
+                    className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-[2px] border-stroke-strong py-2 px-3 text-[10px] font-bangers tracking-widest uppercase transition-all ${
+                      paymentMethod === m.id
+                        ? 'bg-secondary text-on-secondary shadow-brutal-sm'
+                        : 'bg-surface-3 text-on-base-muted hover:text-on-base'
+                    }`}
+                  >
+                    <Icon size={12} />
+                    <span>{m.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-3">
+            {activePromotion ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2 rounded-xl bg-secondary/15 border-[2px] border-secondary px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Ticket size={12} className="text-secondary shrink-0" />
+                    <span className="text-[10px] font-bangers tracking-widest text-on-base truncate uppercase">
+                      {activePromotion.title} · {activePromotion.discountPercentage}% OFF
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => clearPromotion()}
+                    aria-label="Quitar promoción"
+                    className="h-6 w-6 rounded-md bg-surface-3 border-[2px] border-stroke-strong flex items-center justify-center text-on-base-muted hover:text-primary shrink-0"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+                <p className="text-[10px] text-on-base-muted px-1">
+                  Pedido con promoción — el descuento aplica solo a los platos elegidos desde Promociones.
+                </p>
+              </div>
+            ) : (
+              <Link
+                to="/dashboard/promotions"
+                className="text-[10px] font-semibold text-secondary hover:underline"
+              >
+                ¿Quieres usar una promoción? Ir a Promociones
+              </Link>
+            )}
+          </div>
         </div>
 
         <TicketNotch />
@@ -301,6 +363,7 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
                     <button
                       type="button"
                       onClick={() => decQty(it.dishId)}
+                      aria-label={`Disminuir cantidad de ${it.name}`}
                       className="h-6 w-6 rounded-md bg-surface-2 border-[2px] border-stroke-strong flex items-center justify-center"
                     >
                       <Minus size={10} />
@@ -311,6 +374,7 @@ export const CartPanel = ({ mode = 'desktop', onClose, onContinue }) => {
                     <button
                       type="button"
                       onClick={() => incQty(it.dishId)}
+                      aria-label={`Aumentar cantidad de ${it.name}`}
                       className="h-6 w-6 rounded-md bg-surface-2 border-[2px] border-stroke-strong flex items-center justify-center"
                     >
                       <Plus size={10} />

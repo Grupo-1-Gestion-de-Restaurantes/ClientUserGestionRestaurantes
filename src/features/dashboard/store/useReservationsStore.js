@@ -32,9 +32,9 @@ export const useReservationsStore = create((set, get) => ({
       set({ loading: false });
       get().fetchMyReservations();
       return res;
-    } else {
-      set({ error: res.message, loading: false });
-      return res;
     }
+    const errorMessage = res.error || res.message || (Array.isArray(res.errors) && res.errors[0]?.message) || 'Error al crear reserva';
+    set({ error: errorMessage, loading: false });
+    return { ...res, message: errorMessage, error: errorMessage };
   }
 }));

@@ -7,3 +7,4 @@ export * as invoicesApi from './invoices';
 export * as clientsApi from './clients';
 export * as promotionsApi from './promotions';
 export * as notificationsApi from './notifications';
+export * as commentsApi from './comments';
