@@ -5,6 +5,7 @@ import {
   LayoutGrid,
   LogOut,
   Sparkles,
+  Star,
   Store,
   Tag,
   User,
@@ -21,6 +22,7 @@ const nav = [
   { to: '/dashboard/reservations', label: 'Reservas', icon: Calendar, tourId: 'reservations' },
   { to: '/dashboard/events', label: 'Eventos', icon: Sparkles, tourId: 'events' },
   { to: '/dashboard/history', label: 'Historial', icon: History, tourId: 'history' },
+  { to: '/dashboard/reviews', label: 'Mis Reseñas', icon: Star, tourId: 'reviews' },
   { to: '/dashboard/profile', label: 'Mi Perfil', icon: User },
 ];
 

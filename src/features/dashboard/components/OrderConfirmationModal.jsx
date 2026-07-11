@@ -66,7 +66,7 @@ export const OrderConfirmationModal = ({ open, onClose }) => {
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} aria-hidden />
 
-      <div className="relative w-full max-w-5xl h-[90vh] rounded-3xl bg-surface-2 border-[3px] border-stroke-strong shadow-brutal p-6 md:p-8 flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-full sm:max-w-5xl h-[90vh] rounded-3xl bg-surface-2 border-[3px] border-stroke-strong shadow-brutal p-6 md:p-8 flex flex-col overflow-hidden">
         <div className="flex items-start justify-between gap-4 flex-none">
           <div className="min-w-0">
             <div className="text-xs text-on-base-muted tracking-widest uppercase">Confirmación</div>
@@ -109,9 +109,11 @@ export const OrderConfirmationModal = ({ open, onClose }) => {
                 <div className="font-semibold truncate">
                   {selectedAddress.addressLine} {selectedAddress.houseNumber}
                 </div>
-                {selectedAddress.alias ? (
-                  <div className="text-on-base-muted text-xs truncate">{selectedAddress.alias}</div>
-                ) : null}
+                <div className="text-on-base-muted text-xs truncate">
+                  {selectedAddress.alias || 'Dirección'}
+                  {selectedAddress.securityInfo && ` • Seg: ${selectedAddress.securityInfo}`}
+                  {selectedAddress.reference && ` • Ref: ${selectedAddress.reference}`}
+                </div>
               </div>
             ) : (
               <div className="mt-1 text-sm text-on-base-muted">
@@ -153,11 +155,17 @@ export const OrderConfirmationModal = ({ open, onClose }) => {
               <span className="text-on-base font-bold">{formatMoney(totals.deliveryCharge)}</span>
             </div>
           )}
+          <div className="rounded-2xl bg-surface-3 border-[3px] border-stroke-strong px-3 py-2 flex flex-col gap-0.5">
+            <span className="text-on-base-muted text-xs">Promoción</span>
+            <span className="text-on-base font-bold text-xs truncate">
+              {activePromotion ? `${activePromotion.title} (${activePromotion.discountPercentage}%)` : 'Sin promoción'}
+            </span>
+          </div>
           <div className="rounded-2xl bg-surface-3 border-[3px] border-stroke-strong px-3 py-2 flex items-center justify-between">
             <span className="text-on-base-muted text-xs">Descuento</span>
             <span className="text-on-base font-bold">-{formatMoney(totals.discount)}</span>
           </div>
-          <div className="rounded-2xl bg-primary text-on-primary border-[3px] border-stroke-strong px-3 py-2 flex items-center justify-between shadow-brutal-sm">
+          <div className="rounded-2xl bg-primary text-on-primary border-[3px] border-stroke-strong px-3 py-2 flex items-center justify-between shadow-brutal-sm sm:col-span-2">
             <span className="font-bangers tracking-widest text-xs">TOTAL</span>
             <span className="font-bangers text-xl">{formatMoney(totals.total)}</span>
           </div>
@@ -185,7 +193,10 @@ export const OrderConfirmationModal = ({ open, onClose }) => {
               onClose?.();
               navigate('/dashboard/history');
             } else if (res.error) {
-              showError(res.error);
+              const friendly = /permisos|forbidden|403/i.test(res.error)
+                ? 'Tu cuenta actual no puede realizar pedidos. Cierra sesión e ingresa con una cuenta de cliente.'
+                : res.error;
+              showError(friendly);
             }
           }}
           className="mt-5 w-full bg-secondary text-on-secondary font-bangers tracking-widest text-xl py-3 rounded-2xl border-[3px] border-stroke-strong shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_black] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-none"

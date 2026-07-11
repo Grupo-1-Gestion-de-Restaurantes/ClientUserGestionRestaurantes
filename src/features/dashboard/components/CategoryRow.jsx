@@ -11,35 +11,33 @@ export const CategoryRow = ({ selected, onSelect }) => {
   if (!categories.length && !loading) return null;
 
   return (
-    <section className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-secondary/20 flex items-center justify-center border-2 border-secondary">
-          <Filter size={18} className="text-secondary" />
-        </div>
-        <div>
-          <div className="text-on-base font-bangers tracking-wider text-xl leading-none">FILTRAR</div>
-          <div className="text-[10px] text-on-base-muted font-black tracking-widest uppercase mt-1">
-            Por tipo de comida
-          </div>
-        </div>
-      </div>
-
-      <div className="relative group min-w-[200px]">
-        <select
-          value={selected || ''}
-          onChange={(e) => onSelect?.(e.target.value || null)}
-          className="w-full appearance-none bg-surface-2 border-[3px] border-stroke-strong rounded-2xl px-5 py-3 pr-12 text-sm font-bangers tracking-widest text-on-base cursor-pointer focus:border-primary transition-all shadow-brutal-sm outline-none"
+    <section className="mt-6">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none custom-scrollbar-hide">
+        <button
+          type="button"
+          onClick={() => onSelect?.(null)}
+          className={`shrink-0 rounded-2xl border-[3px] border-stroke-strong px-4 py-2.5 text-xs font-bangers tracking-widest uppercase transition-all shadow-brutal-sm ${
+            selected === null
+              ? 'bg-secondary text-on-secondary shadow-none'
+              : 'bg-surface-2 text-on-base hover:bg-surface-3'
+          }`}
         >
-          <option value="">TODAS LAS CATEGORÍAS</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name.toUpperCase()}
-            </option>
-          ))}
-        </select>
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-base-muted group-hover:text-primary transition-colors">
-          <ChevronDown size={18} />
-        </div>
+          TODAS
+        </button>
+        {categories.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => onSelect?.(c.id)}
+            className={`shrink-0 rounded-2xl border-[3px] border-stroke-strong px-4 py-2.5 text-xs font-bangers tracking-widest uppercase transition-all shadow-brutal-sm ${
+              selected === c.id
+                ? 'bg-secondary text-on-secondary shadow-none'
+                : 'bg-surface-2 text-on-base hover:bg-surface-3'
+            }`}
+          >
+            {c.name}
+          </button>
+        ))}
       </div>
     </section>
   );
