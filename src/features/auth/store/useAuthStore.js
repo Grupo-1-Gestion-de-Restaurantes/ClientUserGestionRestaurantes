@@ -210,15 +210,24 @@ export const useAuthStore = create(
         }
       },
 
-      requestPasswordReset: async (emailOrUsername) => {
+      requestPasswordReset: async (email) => {
         try {
           set({ loading: true, error: null });
-          const { data } = await authApi.forgotPassword(emailOrUsername);
+          const { data } = await authApi.forgotPassword(email);
           set({ loading: false });
           return { success: true, data };
         } catch (err) {
+          const api = err.response?.data;
+          const validationMsg =
+            api?.errors?.Email?.[0] ||
+            api?.errors?.email?.[0] ||
+            (api?.title && api?.status === 400
+              ? 'Correo inválido o requerido'
+              : null);
           const message =
-            err.response?.data?.message || 'No se pudo solicitar el restablecimiento';
+            api?.message ||
+            validationMsg ||
+            'No se pudo solicitar el restablecimiento';
           set({ error: message, loading: false });
           return { success: false, error: message };
         }

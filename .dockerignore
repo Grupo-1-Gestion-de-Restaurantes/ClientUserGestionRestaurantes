@@ -1,0 +1,53 @@
+# --- Dependencias del host (se instalan en la imagen con pnpm) ---
+node_modules
+**/node_modules
+
+# --- Salida de build local de Vite ---
+dist
+dist-ssr
+*.local
+
+# --- Control de versiones y docs ---
+.git
+.gitignore
+README.md
+**/*.md
+
+# --- Entorno local ---
+# VITE_* en prod: build-args. No copiar .env del host al contexto.
+.env
+.env.*
+!.env.example
+
+# --- Logs y caché ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.cache/
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+.eslintcache
+
+# --- Docker meta ---
+Dockerfile*
+.dockerignore
+nginx.conf.bak
+
+# --- Artefactos de diseño no usados por el build (opcional) ---
+# ejemplo-3d.png es un asset de referencia en la raíz, no referenciado por Vite como entry.
+ejemplo-3d.png
+
+# --- Tests / coverage ---
+coverage/
+**/__tests__/
+**/*.test.js
+**/*.test.jsx
+**/*.spec.js
+**/*.spec.jsx
+
+# --- Sistema operativo ---
+Thumbs.db
+Desktop.ini
+.DS_Store

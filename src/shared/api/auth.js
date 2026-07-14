@@ -20,8 +20,13 @@ export const verifyEmail = async (token) => {
 export const resendVerification = async (data) => {
   return await axiosAuth.post("/auth/resend-verification", data);
 }
-export const forgotPassword = async (data) => {
-  return await axiosAuth.post("/auth/forgot-password", data);
+export const forgotPassword = async (emailOrPayload) => {
+  // Backend ForgotPasswordDto exige { email }.
+  const email =
+    typeof emailOrPayload === "string"
+      ? emailOrPayload.trim()
+      : (emailOrPayload?.email || "").trim();
+  return await axiosAuth.post("/auth/forgot-password", { email });
 }
 export const resetPassword = async (token, newPassword) => {
   return await axiosAuth.post("/auth/reset-password", { token, newPassword });
