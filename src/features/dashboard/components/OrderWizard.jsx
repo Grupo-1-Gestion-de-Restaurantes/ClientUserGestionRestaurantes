@@ -7,6 +7,39 @@ import { useForm } from 'react-hook-form';
 import { useUIStore } from '../../../shared/store/useUIStore';
 import { showError, showSuccess } from '../../../shared/utils/toast';
 
+const hasPhone = (source) => {
+  const p = String(source?.phone || '').trim().replace(/\D/g, '');
+  return p.length >= 8;
+};
+
+const getAddresses = (info) => {
+  if (!info) return [];
+  if (Array.isArray(info.addresses) && info.addresses.length > 0) {
+    return info.addresses;
+  }
+  if (info.address && typeof info.address === 'object') {
+    return [info.address];
+  }
+  return [];
+};
+
+/** Claves estables para el flag de “ya terminé el wizard” (id y email por si cambian entre mounts). */
+const wizardDoneKeys = (user) => {
+  const keys = [];
+  const id = user?._id || user?.id;
+  const email = user?.email;
+  if (id) keys.push(`clientuser:orderWizardDone:${id}`);
+  if (email) keys.push(`clientuser:orderWizardDone:email:${String(email).toLowerCase()}`);
+  return keys;
+};
+
+const markWizardDone = (user) => {
+  wizardDoneKeys(user).forEach((key) => localStorage.setItem(key, 'true'));
+};
+
+const isWizardMarkedDone = (user) =>
+  wizardDoneKeys(user).some((key) => localStorage.getItem(key) === 'true');
+
 export const OrderWizard = () => {
   const user = useAuthStore((s) => s.user);
   const userId = user?._id || user?.id;
@@ -16,6 +49,8 @@ export const OrderWizard = () => {
   const [submitError, setSubmitError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const openedOnceRef = useRef(false);
+  const phoneSyncedRef = useRef(false);
+  const decidedRef = useRef(false);
 
   const fetchMyInfo = useClientStore((s) => s.fetchMyInfo);
   const addAddress = useClientStore((s) => s.addAddress);
@@ -43,38 +78,115 @@ export const OrderWizard = () => {
   const setAddressId = useOrderStore((s) => s.setAddressId);
   const addressId = useOrderStore((s) => s.addressId);
 
-  const addresses = useMemo(
-    () => info?.addresses || (info?.address ? [info.address] : []),
-    [info],
-  );
+  const addresses = useMemo(() => getAddresses(info), [info]);
 
-  const hasValidSetup = addresses.length > 0 && !!addressId && !!info?.phone;
+  /** Teléfono efectivo: perfil cliente o el del registro/auth */
+  const effectivePhone = useMemo(() => {
+    const clientPhone = String(info?.phone || '').trim();
+    const clientDigits = clientPhone.replace(/\D/g, '');
+    if (clientDigits.length >= 8) return clientPhone;
+    const authPhone = String(user?.phone || '').trim();
+    const authDigits = authPhone.replace(/\D/g, '');
+    if (authDigits.length >= 8) return authPhone;
+    return clientPhone || authPhone || '';
+  }, [info?.phone, user?.phone]);
+
+  const phoneOk = hasPhone({ phone: effectivePhone });
+  const setupComplete = phoneOk && addresses.length > 0;
 
   useEffect(() => {
     if (!userId) return;
-    const timer = setTimeout(() => {
-      fetchMyInfo();
-    }, 600);
-    return () => clearTimeout(timer);
+    // Cargar perfil de inmediato (sin demora innecesaria)
+    fetchMyInfo();
   }, [userId, fetchMyInfo]);
 
+  // Si el cliente no tiene teléfono pero el usuario de auth sí (registro), lo persistimos una vez
+  useEffect(() => {
+    if (!userId || !info || phoneSyncedRef.current) return;
+    if (hasPhone(info)) {
+      phoneSyncedRef.current = true;
+      return;
+    }
+    const authPhone = String(user?.phone || '').trim().replace(/\D/g, '');
+    if (!/^\d{8,15}$/.test(authPhone)) return;
+
+    phoneSyncedRef.current = true;
+    (async () => {
+      const res = await updatePhone(authPhone);
+      if (res.success) {
+        await fetchMyInfo();
+      } else {
+        phoneSyncedRef.current = false;
+      }
+    })();
+  }, [userId, info, user?.phone, updatePhone, fetchMyInfo]);
+
+  // Auto-seleccionar dirección por defecto / primera si falta addressId válido
+  useEffect(() => {
+    if (!addresses.length) return;
+    const ids = addresses.map((a) => String(a._id || a.id || '')).filter(Boolean);
+    if (addressId && ids.includes(String(addressId))) return;
+    const preferred =
+      addresses.find((a) => a.isDefault) || addresses[0];
+    const id = preferred?._id || preferred?.id;
+    if (id) setAddressId(id);
+  }, [addresses, addressId, setAddressId]);
+
+  /**
+   * Auto-apertura del wizard:
+   * - Forzado desde carrito → siempre abrir
+   * - Perfil completo (tel + dirección) → NUNCA auto-abrir
+   * - Flag "ya finalicé" en localStorage → NUNCA auto-abrir (aunque falle alguna detección)
+   * - Solo abrir si falta algo y el usuario no ha finalizado antes
+   */
   useEffect(() => {
     if (!userId) return;
+
     if (isForcedOpen) {
       setIsOpen(true);
       openedOnceRef.current = true;
+      decidedRef.current = true;
       fetchMyInfo();
       return;
     }
-    if (openedOnceRef.current) return;
-    if (hasValidSetup) return;
-    const flagKey = `clientuser:orderWizardDone:${userId}`;
-    const hasRun = localStorage.getItem(flagKey);
-    if (hasRun && addresses.length > 0 && !!info?.phone) return;
 
-    setIsOpen(true);
+    // Esperar a tener el perfil del cliente (no decidir con info=null)
+    if (!info) return;
+
+    // Ya tiene teléfono + dirección → marcar done y no molestar
+    if (setupComplete) {
+      markWizardDone(user);
+      setIsOpen(false);
+      decidedRef.current = true;
+      return;
+    }
+
+    // El usuario ya dio FINALIZAR (o "más tarde") en una visita anterior → no reabrir
+    if (isWizardMarkedDone(user)) {
+      setIsOpen(false);
+      decidedRef.current = true;
+      return;
+    }
+
+    // Ya se abrió / se decidió en este montaje; no reabrir si el usuario lo cerró
+    if (openedOnceRef.current || decidedRef.current) return;
+
+    // Falta teléfono o dirección y nunca finalizó → mostrar
     openedOnceRef.current = true;
-  }, [userId, isForcedOpen, hasValidSetup, addresses.length, info?.phone, fetchMyInfo]);
+    decidedRef.current = true;
+    setPhoneInput(effectivePhone);
+    setEditingPhone(!phoneOk);
+    setIsOpen(true);
+  }, [
+    userId,
+    user,
+    isForcedOpen,
+    info,
+    setupComplete,
+    phoneOk,
+    effectivePhone,
+    fetchMyInfo,
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -146,22 +258,31 @@ export const OrderWizard = () => {
     }
   };
 
-  const handleFinish = () => {
-    if (!info?.phone) {
-      showError('Por favor ingresa y guarda tu número de teléfono.');
-      return;
-    }
-    if (userId) {
-      localStorage.setItem(`clientuser:orderWizardDone:${userId}`, 'true');
-    }
+  const dismissWizard = () => {
+    // Persistir "ya terminé / lo pospuse" para que no reaparezca al recargar o reentrar
+    markWizardDone(user);
+    decidedRef.current = true;
+    openedOnceRef.current = true;
     setIsOpen(false);
     closeOrderWizard();
     window.dispatchEvent(new Event('orderWizardFinished'));
   };
 
+  const handleFinish = () => {
+    if (!phoneOk) {
+      showError('Por favor ingresa y guarda tu número de teléfono.');
+      return;
+    }
+    if (addresses.length === 0) {
+      showError('Por favor agrega al menos una dirección de entrega.');
+      return;
+    }
+    dismissWizard();
+  };
+
   if (!isOpen) return null;
 
-  const canFinish = !!addressId || addresses.some((a) => a.isDefault);
+  const canFinish = phoneOk && addresses.length > 0;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -186,7 +307,7 @@ export const OrderWizard = () => {
             <h3 className="font-bangers text-xl text-on-base flex items-center gap-2 mb-2">
               <Phone className="text-secondary" /> Teléfono de Contacto
             </h3>
-            {!info?.phone || editingPhone ? (
+            {!phoneOk || editingPhone ? (
               <div className="flex gap-2">
                 <div className="flex-1">
                   <input
@@ -204,7 +325,7 @@ export const OrderWizard = () => {
                 >
                   GUARDAR
                 </button>
-                {info?.phone && (
+                {phoneOk && (
                   <button
                     type="button"
                     onClick={() => setEditingPhone(false)}
@@ -216,10 +337,10 @@ export const OrderWizard = () => {
               </div>
             ) : (
               <div className="flex items-center justify-between bg-surface-1 border-[3px] border-stroke-strong rounded-xl p-3">
-                <span className="font-semibold text-on-base text-sm">{info.phone}</span>
+                <span className="font-semibold text-on-base text-sm">{effectivePhone}</span>
                 <button
                   type="button"
-                  onClick={() => { setPhoneInput(info.phone); setEditingPhone(true); }}
+                  onClick={() => { setPhoneInput(effectivePhone); setEditingPhone(true); }}
                   className="text-xs text-secondary font-bangers tracking-widest hover:underline"
                 >
                   CAMBIAR
@@ -391,7 +512,7 @@ export const OrderWizard = () => {
         <div className="flex items-center justify-between mt-auto pt-4 border-t-2 border-dashed border-stroke-soft">
           <button
             type="button"
-            onClick={handleFinish}
+            onClick={dismissWizard}
             className="text-[10px] font-black text-on-base-muted hover:text-primary transition-colors underline underline-offset-4 decoration-2 uppercase tracking-widest"
           >
             Hacerlo más tarde

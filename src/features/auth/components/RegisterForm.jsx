@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { CheckCircle2, Mail } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
-import { showError, showSuccess } from '../../../shared/utils/toast';
+import { showError } from '../../../shared/utils/toast';
 
 export const RegisterForm = ({ onSwitch }) => {
   const registerUser = useAuthStore((s) => s.register);
@@ -11,6 +12,8 @@ export const RegisterForm = ({ onSwitch }) => {
   const fileRef = useRef(null);
   const [preview, setPreview] = useState(null);
   const [pickedFile, setPickedFile] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const {
     register,
@@ -23,11 +26,17 @@ export const RegisterForm = ({ onSwitch }) => {
     if (pickedFile) payload.profilePicture = pickedFile;
     const res = await registerUser(payload);
     if (res.success) {
-      showSuccess('¡Cuenta creada! Revisa tu correo para verificarla.');
-      onSwitch('login');
+      setRegisteredEmail(String(data.email || '').trim());
+      setShowSuccessModal(true);
     } else if (res.error) {
       showError(res.error);
     }
+  };
+
+  const handleSuccessOk = () => {
+    setShowSuccessModal(false);
+    setRegisteredEmail('');
+    onSwitch('login');
   };
 
   const handleImageChange = (e) => {
@@ -40,6 +49,7 @@ export const RegisterForm = ({ onSwitch }) => {
     `bg-transparent border ${hasError ? 'border-red-500' : 'border-white/20'} rounded-xl p-2.5 text-sm focus:outline-none focus:border-secondary transition-colors placeholder:text-gray-500 disabled:opacity-50 text-white w-full box-border`;
 
   return (
+    <>
     <form
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col gap-3 w-full max-h-[55vh] sm:max-h-[65vh] overflow-y-auto pr-1 overflow-x-hidden pb-2"
@@ -215,5 +225,60 @@ export const RegisterForm = ({ onSwitch }) => {
         ¿Ya tienes cuenta? <span className="font-bold ml-1 text-secondary">Inicia Sesión</span>
       </button>
     </form>
+
+    {showSuccessModal && (
+      <div
+        className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="register-success-title"
+      >
+        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+        <div className="relative w-full max-w-md bg-background-base/95 border border-white/15 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] p-6 sm:p-8 flex flex-col items-center text-center">
+          <div className="h-16 w-16 rounded-full bg-secondary/15 border border-secondary/40 flex items-center justify-center mb-4">
+            <CheckCircle2 className="text-secondary" size={36} strokeWidth={2.25} />
+          </div>
+
+          <h2
+            id="register-success-title"
+            className="text-2xl sm:text-3xl font-bold text-white leading-tight"
+          >
+            ¡Gracias por <span className="text-secondary">registrarte</span>!
+          </h2>
+
+          <p className="mt-3 text-sm sm:text-base text-white/80 leading-relaxed">
+            Tu cuenta se creó correctamente. Antes de iniciar sesión debes
+            <span className="text-white font-semibold"> verificar tu correo electrónico</span>.
+          </p>
+
+          <div className="mt-5 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-start gap-3 text-left">
+            <Mail className="text-primary shrink-0 mt-0.5" size={20} />
+            <div className="min-w-0">
+              <p className="text-sm text-white/90 leading-snug">
+                Revisa tu bandeja de entrada{registeredEmail ? (
+                  <>
+                    {' '}
+                    (<span className="font-semibold text-secondary break-all">{registeredEmail}</span>)
+                  </>
+                ) : null}{' '}
+                y abre el enlace de verificación.
+              </p>
+              <p className="mt-2 text-xs text-white/55 leading-snug">
+                Si no lo ves, revisa spam o correo no deseado. Cuando verifiques, ya podrás iniciar sesión.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSuccessOk}
+            className="mt-6 w-full bg-secondary text-background-base font-bold p-3 rounded-xl hover:bg-[#d6ba00] transition-all active:scale-[0.98]"
+          >
+            Entendido, ir a iniciar sesión
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 };

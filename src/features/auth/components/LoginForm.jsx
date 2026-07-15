@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { showError, showSuccess } from '../../../shared/utils/toast';
 
@@ -9,6 +11,7 @@ export const LoginForm = ({ onSwitch }) => {
   const login = useAuthStore((s) => s.login);
   const loading = useAuthStore((s) => s.loading);
   const error = useAuthStore((s) => s.error);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -51,15 +54,27 @@ export const LoginForm = ({ onSwitch }) => {
 
       <div className="flex flex-col gap-1">
         <label className="text-xs text-secondary ml-1 font-medium">Password</label>
-        <input
-          type="password"
-          placeholder="••••••••"
-          disabled={loading}
-          {...register('password', { required: 'La contraseña es obligatoria' })}
-          className={`bg-transparent border ${
-            errors.password ? 'border-red-500' : 'border-white/20'
-          } rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors placeholder:text-gray-500 disabled:opacity-50 w-full`}
-        />
+        <div className="relative w-full">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            placeholder="••••••••"
+            disabled={loading}
+            {...register('password', { required: 'La contraseña es obligatoria' })}
+            className={`bg-transparent border ${
+              errors.password ? 'border-red-500' : 'border-white/20'
+            } rounded-xl p-3 pr-11 text-sm focus:outline-none focus:border-primary transition-colors placeholder:text-gray-500 disabled:opacity-50 w-full`}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            disabled={loading}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors disabled:opacity-50"
+            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          >
+            {showPassword ? <EyeOff size={18} strokeWidth={2.25} /> : <Eye size={18} strokeWidth={2.25} />}
+          </button>
+        </div>
         {errors.password && (
           <span className="text-red-500 text-xs ml-1">{errors.password.message}</span>
         )}

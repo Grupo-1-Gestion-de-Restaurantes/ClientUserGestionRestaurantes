@@ -108,10 +108,13 @@ export const useAuthStore = create(
 
       logout: () => {
         if (window._authRefreshTimer) clearTimeout(window._authRefreshTimer);
+        // Solo limpiar onboarding del tour; el flag del OrderWizard se conserva
+        // para que al volver a iniciar sesión no reaparezca si el usuario ya finalizó.
         Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith('clientuser:orderWizardDone:') ||
-              key.startsWith('clientuser:onboarding:') ||
-              key === 'clientuser:onboardingDone') {
+          if (
+            key.startsWith('clientuser:onboarding:') ||
+            key === 'clientuser:onboardingDone'
+          ) {
             localStorage.removeItem(key);
           }
         });
